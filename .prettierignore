@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+.claude/skills/
+public/fonts/
+package-lock.json
