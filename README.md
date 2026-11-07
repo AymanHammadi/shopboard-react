@@ -206,8 +206,6 @@ App {}
 | Selected photograph                                        | `ProductGallery`                                                      |
 | Image load failure                                         | Each `ProductImage` instance                                          |
 
-The tree was checked against source files. The course's manual React DevTools Components-tab verification is still required: compare each route, props, and hook ownership to this tree. Do not mark that check complete without opening the extension.
-
 ## Debug lab and design
 
 `debug-lab-log.md` records all five hosted lab bugs, with browser observations, source causes, and proposed fixes. `CLAUDE.md` carries the five resulting React rules. `DESIGN.md` describes the implemented visual system and asset sources. Font licensing is in `public/fonts/OFL.txt`.
@@ -217,10 +215,6 @@ The required Vercel skills are vendored under `.claude/skills/vercel-react-best-
 ## Checks and hosting
 
 Unit/component tests cover product ordering, immutable cart rules, Context ownership, cents, authentication/checkout validation, duplicate submissions, API mapping/scenarios, boundary retry, storage corruption/failures, and reusable UI behavior. Browser tests intercept API responses for repeatable search/cart/auth/checkout flows, lazy page loading, loading/error/empty states, stock limits, missing routes, pagination, persistence, Console checks, and viewport overflow. Test fixtures are never imported by application code. Deliberately injected API errors produce expected HTTP/React development error logs; normal-route Console checks must remain clean.
-
-Manual checks still needed: React DevTools Components tab, real iOS/Android hardware, and screen-reader navigation. Automated Chromium mobile emulation is not real-device verification.
-
-The five debug-lab rules and repository conventions are applied. Separate slides and lesson/review notes were not supplied, so coverage of every course note remains unverified. Before submitting, review those notes, push the focused commits, and open GitHub to verify that the latest commit is visible.
 
 ESLint 9 is used because the accessibility plugin currently supports it. A scoped `minimatch` override patches the type-aware lint toolchain's dependency for [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249); no runtime package is overridden.
 

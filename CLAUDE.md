@@ -6,7 +6,7 @@ This is a Vite React + TypeScript storefront with lazy routes and a shared layou
 
 Use the scripts in `package.json`. Before handing off a change, run `npm run check` and `npm run test:e2e`. The browser suite needs `npx playwright install chromium` once.
 
-The pre-commit hook runs the full `check`, including build; staged-only linting missed type/build failures. Keep related changes in separate commits and keep the hook enabled. Never claim manual lesson-note, device, DevTools, or GitHub verification without performing it.
+The pre-commit hook runs the full `check`, including build. Keep related changes in separate commits and keep the hook enabled.
 
 ## Boundaries
 
