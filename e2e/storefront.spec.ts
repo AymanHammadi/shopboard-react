@@ -280,6 +280,72 @@ test('page modules are requested only when their routes open', async ({
   expect(requests.some((path) => path.endsWith('/AuthPage.tsx'))).toBe(false);
 });
 
+test('development failure and empty base URLs reach the real recovery UI', async ({
+  page,
+  baseURL,
+}) => {
+  let mode = 'fail/500';
+  await page.route('https://dummyjson.com/products?**', async (route) => {
+    const response = await route.fetch({
+      url: `${baseURL}/api/${mode}/products`,
+    });
+    await route.fulfill({ response });
+  });
+  await page.goto('/');
+  await expect(
+    page.getByRole('heading', { name: 'Products couldn’t load' }),
+  ).toBeVisible();
+  mode = 'empty';
+  await page.getByRole('button', { name: 'Try again' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'No products available' }),
+  ).toBeVisible();
+});
+
+test('a failed page download keeps navigation available and reload can retry', async ({
+  page,
+}) => {
+  let shouldFail = true;
+  await page.route('**/src/modules/cart/pages/CartPage.tsx', (route) =>
+    shouldFail ? route.abort('failed') : route.continue(),
+  );
+  await page.goto('/cart');
+  await expect(
+    page.getByRole('heading', { name: 'This page couldn’t load' }),
+  ).toBeVisible();
+  await expect(page.getByRole('banner')).toBeVisible();
+  shouldFail = false;
+  await page.getByRole('button', { name: 'Reload page' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Your cart is empty' }),
+  ).toBeVisible();
+});
+
+test('a slow catalog does not block navigating to the cart', async ({
+  page,
+}) => {
+  let release: (() => void) | undefined;
+  const waiting = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route('https://dummyjson.com/products?**', async (route) => {
+    await waiting;
+    await route.fulfill({
+      json: { products: apiProducts, total: apiProducts.length },
+    });
+  });
+  await page.goto('/');
+  await expect(
+    page.getByRole('status', { name: 'Loading products' }),
+  ).toBeVisible();
+  await page.getByRole('link', { name: 'Cart, 0 items', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Your cart is empty' }),
+  ).toBeVisible();
+  if (release === undefined) throw new Error('Missing delayed response');
+  release();
+});
+
 test('corrupt or blocked storage does not crash the cart', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('shopboard:cart:v1', '{invalid}');
@@ -340,6 +406,12 @@ test('layout fits the viewport and the console has no React errors', async ({
 test('checkout validates, confirms without payment, and clears the persistent cart', async ({
   page,
 }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error' || message.type() === 'warning')
+      errors.push(message.text());
+  });
   await page.goto('/checkout');
   await expect(
     page.getByRole('heading', { name: 'Your cart is empty' }),
@@ -355,6 +427,11 @@ test('checkout validates, confirms without payment, and clears the persistent ca
   await page.getByRole('button', { name: 'Confirm order' }).click();
   await expect(page.getByLabel('Full name')).toBeFocused();
   await expect(page.getByText('Enter a valid email address.')).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
   await expect(
     page.getByRole('link', { name: 'Cart, 1 item', exact: true }),
   ).toBeVisible();
@@ -384,6 +461,7 @@ test('checkout validates, confirms without payment, and clears the persistent ca
   await expect(
     page.getByRole('heading', { name: 'Your cart is empty' }),
   ).toBeVisible();
+  expect(errors).toEqual([]);
 });
 
 test('pagination stays local and resets when filters change', async ({

@@ -1,6 +1,6 @@
 # ShopBoard design
 
-The visual reference is `shopboard-starter`: lime actions, sage backgrounds, heavy Inter headings, white rounded product cards. This React version keeps that identity while introducing separate product, cart, and authentication pages. It is light-only.
+The visual reference is `shopboard-starter`: lime actions, sage backgrounds, heavy Inter headings, white rounded product cards. This React version keeps that identity across product, cart, authentication, and checkout pages. It is light-only.
 
 ## Tokens and typography
 
@@ -21,6 +21,8 @@ Inter is self-hosted as a Latin variable WOFF2, preloaded, with system fallbacks
 Use links for navigation and buttons for actions. Shared buttons support primary, secondary, ghost, and danger treatments. Lime identifies purchase/authentication actions. Quantity buttons and navigation targets are at least 44px; form controls are at least 48px high. Keep keyboard focus visible.
 
 Every input has a persistent associated label. Forms validate on blur or submission, then remove errors as fields are corrected. Form errors include text, not just color. Clear cart requires native confirmation. Removing cart items moves focus to the cart heading. Route changes focus the main content.
+
+Checkout uses the same field and surface tokens through adapted shadcn Input/Label components. Keep contact and shipping fields grouped with legends, preserve address autofill, and focus the confirmation heading after success.
 
 Hover effects only apply inside `(hover: hover) and (pointer: fine)`. There are no entrance animations, animated grid changes, or scroll effects. Loading uses static skeletons, so reduced-motion users receive the same behavior without an alternative animation path.
 

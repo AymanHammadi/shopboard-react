@@ -12,12 +12,16 @@ export class ApiError extends Error {
   }
 }
 
-const baseUrl = 'https://dummyjson.com';
-
 export async function getJson(
   path: string,
   signal: AbortSignal,
 ): Promise<unknown> {
+  const configuredBaseUrl: unknown = import.meta.env.VITE_API_BASE_URL;
+  const baseUrl = (
+    typeof configuredBaseUrl === 'string'
+      ? configuredBaseUrl
+      : 'https://dummyjson.com'
+  ).replace(/\/$/, '');
   const response = await fetch(`${baseUrl}${path}`, {
     signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]),
     headers: { Accept: 'application/json' },

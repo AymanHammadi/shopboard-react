@@ -20,15 +20,6 @@
     "check": "npm run typecheck && npm run lint && npm run format:check && npm test && npm run build",
     "prepare": "husky"
   },
-  "lint-staged": {
-    "*.{ts,tsx,js}": [
-      "eslint --fix --max-warnings 0",
-      "prettier --write"
-    ],
-    "*.{css,html,json,md,yml}": [
-      "prettier --write"
-    ]
-  },
   "dependencies": {
     "@hookform/resolvers": "^7.0.3",
     "@radix-ui/react-label": "^2.1.17",
@@ -63,7 +54,6 @@
     "globals": "^17.14.0",
     "husky": "^9.1.7",
     "jsdom": "^31.0.0",
-    "lint-staged": "^17.6.0",
     "prettier": "^3.9.10",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.72.1",

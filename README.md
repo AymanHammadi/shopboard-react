@@ -32,7 +32,24 @@ Before the first browser test run:
 npx playwright install chromium
 ```
 
-Husky runs lint-staged before commits. Staged TypeScript/TSX files receive type-aware linting and formatting; other supported text files receive formatting. CI runs `check` and the browser tests. Review changes before committing them.
+Husky runs the full `npm run check` before commits. A type, lint, format, test, or build failure blocks the commit; the hook does not silently fix files. Run `npm run format` yourself when needed. CI runs the same checks plus browser tests.
+
+### API base URL and required failure modes
+
+The default API is `https://dummyjson.com`. Set `VITE_API_BASE_URL` to override it; restart Vite after changing it. The value is public and baked into production builds, so it must not contain secrets.
+
+DummyJSON does not provide the assignment's path-based test modes. The Vite development server supplies these under `/api`, proxying normal/delayed product requests to DummyJSON:
+
+```sh
+VITE_API_BASE_URL=/api npm run dev
+VITE_API_BASE_URL=/api/delay/3000 npm run dev
+VITE_API_BASE_URL=/api/fail/500 npm run dev
+VITE_API_BASE_URL=/api/empty npm run dev
+```
+
+Run one command at a time. Delay holds requests for three seconds; the shell and catalog hero stay usable. Failure shows Try again while the cart stays accessible. Empty shows empty shelves and missing product details. These modes apply to both catalog and detail requests. A persistent failure mode keeps failing on retry; restart with `/api` and reload to recover. Tests also cover a failing response followed by a successful retry.
+
+The scenario middleware and `/api` proxy are development-only. For production, omit the override to use DummyJSON, or configure a real CORS-enabled API. Do not build with `/api` unless your host provides that endpoint.
 
 ## Pages and behavior
 
@@ -73,12 +90,17 @@ src/
     auth/
       auth.types.ts        # Profile, form fields and errors
       auth.logic.ts        # Pure form validation and profile creation
-      auth.state.ts        # Local profile store and actions
+      auth.state.ts        # Profile Context contract and persisted-state factory
       components/
+      pages/
+    checkout/
+      checkout.types.ts    # The checkout schema, values and receipt contract
+      components/          # Form, fields, live summary and confirmation
       pages/
   shared/
     api/client.ts          # HTTP status checks, timeout and cancellation
-    components/            # Controls and application shell
+    components/            # Controls, shared layout and async boundaries
+      ui/                  # Adapted shadcn Input/Label and their license
     storage.ts             # Versioned storage adapter and subscriptions
     money.ts               # Integer-cent conversion and USD formatting
     usePageTitle.ts
@@ -87,15 +109,16 @@ src/
   styles.css               # Tokens and responsive styles
 tests/                     # Unit/component tests and test-only fixtures
 e2e/                       # Browser flows with intercepted API responses
+tooling/                   # Development-only API scenario middleware
 ```
 
 Components import feature contracts, rules, state, or feature components directly. There are no barrel files. `*.logic.ts` does not access storage or import React. Only the shared HTTP client calls `fetch`; only the storage adapter accesses `localStorage`.
 
-This is a fresh implementation. The Day 3 repository is unchanged; its files were not copied line for line. That deliberately differs from the assignment's unchanged-copy requirement, following the agreed approach.
+This assignment continues in the same React repository as Day 4.
 
 ## API and cart decisions
 
-[DummyJSON products](https://dummyjson.com/docs/products) is the only runtime inventory source. The catalog request uses `limit=0` and selects only the fields the grid/filter logic needs. Full details come from `/products/:id`. TanStack Query deduplicates and caches requests for five minutes, with request cancellation, a 15-second timeout, and explicit retry controls. No hardcoded fallback catalog is used.
+[DummyJSON products](https://dummyjson.com/docs/products) is the only runtime inventory source. The catalog request uses `limit=0` and selects only the fields the grid/filter logic needs. Full details come from `/products/:id`. TanStack Query deduplicates and caches requests for five minutes, with a 15-second request timeout and explicit retry controls. No hardcoded fallback catalog is used. Suspense queries may finish after their observer unmounts; leaving a slow page still works without waiting for them.
 
 Zod validates unknown JSON before mapping API dollar prices into integer cents. `Category` is the closed union inferred from the 24 supported category slugs; the label map is exhaustive. An unexpected category or malformed response produces an error instead of widening the type or silently dropping a product. If DummyJSON adds categories, update the schema and labels together.
 
@@ -109,78 +132,79 @@ Cart entries contain a small product snapshot so they remain readable after refr
 
 ## Component tree
 
-Every project component below has its own matching `.tsx` file. `{}` means no props. Library router internals and Lucide icons are omitted; providers/routes are included for orientation. Shared controls are repeated where they render. Native HTML elements are not components in this tree. `StrictMode` wraps `App` in `main.tsx`.
+`StrictMode` wraps `App` in `main.tsx`. Each application component below has a matching `.tsx` file. The tree shows feature-level props; native elements, icons, repeated Button instances, and library internals are omitted. All route pages are lazy-loaded.
 
 ```text
 App {}
-└─ QueryClientProvider { client }
+└─ QueryClientProvider { client } → AuthProvider { children }
    └─ CartProvider { children }
-      └─ BrowserRouter {}
-      ├─ RouteFocus {}
-      ├─ Header {}
-      │  └─ Button { variant, onClick, children } [signed in]
-      ├─ StorageNotice {}
-      ├─ Routes
-      │  ├─ CatalogPage {} [/]
-      │  │  ├─ CatalogHero {}
-      │  │  ├─ CatalogControls { filters, categories, onChange, onReset }
-      │  │  │  └─ Button { variant, disabled, onClick, children }
-      │  │  ├─ CatalogSkeleton {} [loading]
-      │  │  ├─ StateMessage { title, role?, children } [error/empty/no match]
-      │  │  │  └─ Button { onClick, children }
-      │  │  ├─ ProductGrid { products } [results]
-      │  │  │  └─ ProductCard { product, loading? } [key: product.id]
-      │  │  │     ├─ ProductImage { src, alt, loading }
-      │  │  │     └─ AddToCart { product }
-      │  │  │        └─ Button { variant, disabled, onClick, aria-label, children }
-      │  │  └─ Pagination { page, pages, onChange }
-      │  │     └─ Button ×2 { disabled, onClick, children }
-      │  ├─ ProductPage {} [/products/:productId]
-      │  │  ├─ StateMessage { title, role?, children } [missing/error]
-      │  │  │  └─ Button { onClick, children } [retryable error]
-      │  │  └─ ProductDetailsView { product } [key: product.id]
-      │  │     ├─ ProductGallery { images, title }
-      │  │     │  ├─ ProductImage { src, alt, loading, className } [selected]
-      │  │     │  └─ ProductImage { src, alt } [thumbnails]
-      │  │     ├─ QuantityControl { name, value, max, onChange }
-      │  │     │  └─ Button ×2 { variant, aria-label, disabled, onClick, children }
-      │  │     └─ AddToCart { product, quantity }
-      │  │        └─ Button { variant, disabled, onClick, aria-label, children }
-      │  ├─ CartPage {} [/cart]
-      │  │  ├─ Button { variant, disabled, onClick, children } [clear]
-      │  │  ├─ StateMessage { title, children } [empty]
-      │  │  ├─ CartRow { item, onRemove } [key: item.product.id]
-      │  │  │  ├─ ProductImage { src, alt }
-      │  │  │  ├─ QuantityControl { name, value, max, onChange }
-      │  │  │  │  └─ Button ×2 { variant, aria-label, disabled, onClick, children }
-      │  │  │  └─ Button { variant, className, aria-label, onClick, children }
-      │  │  └─ CartSummary { quantity, subtotalCents }
-      │  ├─ AuthPage { mode: 'login' | 'signup' } [/login or /signup]
-      │  │  └─ AuthForm { mode } [key: mode]
-      │  │     ├─ TextField { id, name, label, autoComplete, required, value,
-      │  │     │              onChange, onBlur, error, type?, minLength? }
-      │  │     └─ Button { type, variant, children }
-      │  └─ NotFoundPage {} [*]
-      │     └─ StateMessage { title, children }
-      └─ Footer {}
+      └─ BrowserRouter → Routes → AppLayout {}
+         ├─ RouteFocus {}
+         ├─ Header {}
+         ├─ StorageNotice {}
+         ├─ ErrorBoundary → Suspense → Outlet
+         │  ├─ CatalogPage {} [/]
+         │  │  ├─ CatalogHero {}
+         │  │  └─ AsyncBoundary { title, fallback, children }
+         │  │     ├─ CatalogSkeleton {} [loading]
+         │  │     └─ CatalogResults {}
+         │  │        ├─ CatalogControls { filters, categories, onChange, onReset }
+         │  │        ├─ StateMessage { title, children } [empty/no match]
+         │  │        ├─ ProductGrid { products }
+         │  │        │  └─ ProductCard { product, loading? } [key: product.id]
+         │  │        │     ├─ ProductImage { src, alt, loading }
+         │  │        │     └─ AddToCart { product }
+         │  │        └─ Pagination { page, pages, onChange }
+         │  ├─ ProductPage {} [/products/:productId]
+         │  │  ├─ MissingProduct {} [invalid ID]
+         │  │  └─ AsyncBoundary { title, fallback, children } [key: id]
+         │  │     └─ ProductContent { id }
+         │  │        ├─ MissingProduct {} [HTTP 404]
+         │  │        └─ ProductDetailsView { product } [key: product.id]
+         │  │           ├─ ProductGallery { images, title }
+         │  │           │  └─ ProductImage { src, alt, loading?, className? }
+         │  │           ├─ QuantityControl { name, value, max, onChange }
+         │  │           └─ AddToCart { product, quantity }
+         │  ├─ CartPage {} [/cart]
+         │  │  ├─ StateMessage { title, children } [empty]
+         │  │  ├─ CartRow { item, onRemove } [key: product.id]
+         │  │  │  ├─ ProductImage { src, alt }
+         │  │  │  └─ QuantityControl { name, value, max, onChange }
+         │  │  └─ CartSummary { quantity, subtotalCents }
+         │  ├─ CheckoutPage {} [/checkout]
+         │  │  ├─ StateMessage { title, children } [empty cart]
+         │  │  ├─ CheckoutForm { onComplete }
+         │  │  │  └─ FormProvider → CheckoutField { name, label, autoComplete, type? }
+         │  │  │     ├─ Label { htmlFor, children }
+         │  │  │     └─ Input { register props, id, type, autoComplete, aria-* }
+         │  │  ├─ CheckoutSummary {}
+         │  │  └─ OrderConfirmation { receipt } [success]
+         │  ├─ AuthPage { mode: 'login' | 'signup' } [/login or /signup]
+         │  │  └─ AuthForm { mode } [key: mode]
+         │  │     └─ TextField { id, label, error?, native input props }
+         │  └─ NotFoundPage {} [*]
+         │     └─ StateMessage { title, children }
+         └─ Footer {}
 ```
 
-`Button` accepts native button props plus `variant`; `TextField` accepts native input props plus `id`, `label`, and optional `error`. `ProductImage` also accepts optional `className`. Every reusable component uses a typed `Props` interface; prop-free shell/pages do not invent empty interfaces.
+`AsyncBoundary` composes QueryErrorResetBoundary → ErrorBoundary → Suspense. Its error fallback uses StateMessage and a retry Button. `MissingProduct` also renders StateMessage. `Button` accepts native button props plus `variant`; QuantityControl and AddToCart compose it. Input and Label accept their native/primitive props, including refs. Other reusable components use typed `Props` interfaces.
 
 ### State ownership
 
-| State                                            | Owner                                                                 |
-| ------------------------------------------------ | --------------------------------------------------------------------- |
-| Catalog and product request data/status/cache    | TanStack Query through `products.state.ts`                            |
-| Search, category, sort, page                     | URL parameters managed by `CatalogPage`                               |
-| Filtered/sorted products, categories, page count | Derived by pure product rules during render                           |
-| Cart items and persistence issues                | `CartProvider` through Context; one persisted-state instance          |
-| Cart quantity/subtotal and stock-limited buttons | Derived from cart data, not duplicated in state                       |
-| Local signed-in profile and persistence issues   | `auth.state.ts` store                                                 |
-| Form values, touched fields, submitted flag      | `AuthForm`; errors derived by `auth.logic.ts`                         |
-| Requested product quantity                       | `ProductDetailsView`; effective quantity derives from remaining stock |
-| Selected photograph                              | `ProductGallery`                                                      |
-| Image load failure                               | Each `ProductImage` instance                                          |
+| State                                                      | Owner                                                                 |
+| ---------------------------------------------------------- | --------------------------------------------------------------------- |
+| Catalog and product request data/status/cache              | TanStack Query through `products.state.ts`                            |
+| Search, category, sort, page                               | URL parameters managed by `CatalogResults`                            |
+| Filtered/sorted products, categories, page count           | Derived by pure product rules during render                           |
+| Cart items and persistence issues                          | `CartProvider` through Context; one persisted-state instance          |
+| Cart quantity/subtotal and stock-limited buttons           | Derived from cart data, not duplicated in state                       |
+| Local signed-in profile and persistence issues             | `AuthProvider` through Context; one persisted-state instance          |
+| Form values, touched fields, submitted flag                | `AuthForm`; errors derived by `auth.logic.ts`                         |
+| Checkout values, touched fields, errors, submission status | react-hook-form inside `CheckoutForm`                                 |
+| Completed receipt snapshot                                 | `CheckoutPage`; local historical summary, not a copy of the live cart |
+| Requested product quantity                                 | `ProductDetailsView`; effective quantity derives from remaining stock |
+| Selected photograph                                        | `ProductGallery`                                                      |
+| Image load failure                                         | Each `ProductImage` instance                                          |
 
 The tree was checked against source files. The course's manual React DevTools Components-tab verification is still required: compare each route, props, and hook ownership to this tree. Do not mark that check complete without opening the extension.
 
@@ -192,9 +216,11 @@ The required Vercel skills are vendored under `.claude/skills/vercel-react-best-
 
 ## Checks and hosting
 
-Unit/component tests cover product ordering, immutable cart rules, cents, authentication validation, API mapping, storage corruption/failures, and reusable UI behavior. Browser tests intercept API responses for repeatable search/cart/auth flows, loading/error/empty states, stock limits, missing routes, pagination, persistence, Console checks, and viewport overflow. Test fixtures are never imported by application code.
+Unit/component tests cover product ordering, immutable cart rules, Context ownership, cents, authentication/checkout validation, duplicate submissions, API mapping/scenarios, boundary retry, storage corruption/failures, and reusable UI behavior. Browser tests intercept API responses for repeatable search/cart/auth/checkout flows, lazy page loading, loading/error/empty states, stock limits, missing routes, pagination, persistence, Console checks, and viewport overflow. Test fixtures are never imported by application code. Deliberately injected API errors produce expected HTTP/React development error logs; normal-route Console checks must remain clean.
 
 Manual checks still needed: React DevTools Components tab, real iOS/Android hardware, and screen-reader navigation. Automated Chromium mobile emulation is not real-device verification.
+
+The five debug-lab rules and repository conventions are applied. Separate slides and lesson/review notes were not supplied, so coverage of every course note remains unverified. Before submitting, review those notes, push the focused commits, and open GitHub to verify that the latest commit is visible.
 
 ESLint 9 is used because the accessibility plugin currently supports it. A scoped `minimatch` override patches the type-aware lint toolchain's dependency for [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249); no runtime package is overridden.
 
