@@ -2,12 +2,12 @@ import { ArrowUpRight, ShoppingBag, UserRound } from 'lucide-react';
 import { Link, NavLink } from 'react-router-dom';
 import { cartTotals } from '../../modules/cart/cart.logic';
 import { useCart } from '../../modules/cart/cart.state';
-import { authActions, useAuth } from '../../modules/auth/auth.state';
+import { useAuth } from '../../modules/auth/auth.state';
 import { Button } from './Button';
 
 export function Header() {
   const { value: cart } = useCart();
-  const { value: profile } = useAuth();
+  const { value: profile, actions } = useAuth();
   const { quantity } = cartTotals(cart);
 
   return (
@@ -29,7 +29,7 @@ export function Header() {
               <span>Log in</span>
             </NavLink>
           ) : (
-            <Button variant="ghost" onClick={() => authActions.signOut()}>
+            <Button variant="ghost" onClick={actions.signOut}>
               Log out<span className="sr-only"> {profile.name}</span>
             </Button>
           )}

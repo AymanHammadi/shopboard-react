@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { CartProvider } from '../src/modules/cart/components/CartProvider';
+import { AuthProvider } from '../src/modules/auth/components/AuthProvider';
 import { CheckoutPage } from '../src/modules/checkout/pages/CheckoutPage';
 import { CheckoutForm } from '../src/modules/checkout/components/CheckoutForm';
 import { checkoutSchema } from '../src/modules/checkout/checkout.types';
@@ -43,6 +44,19 @@ describe('checkout schema', () => {
 });
 
 describe('checkout', () => {
+  it('prefills contact details from the provider-owned profile', () => {
+    localStorage.setItem(
+      'shopboard:profile:v1',
+      JSON.stringify({ name: 'Alex Doe', email: 'alex@example.com' }),
+    );
+    render(<CheckoutForm onComplete={() => undefined} />, {
+      wrapper: AuthProvider,
+    });
+    expect(screen.getByLabelText('Full name')).toHaveValue('Alex Doe');
+    expect(screen.getByLabelText('Email address')).toHaveValue(
+      'alex@example.com',
+    );
+  });
   it('does not offer a form when the cart is empty', () => {
     render(
       <MemoryRouter>
@@ -50,6 +64,7 @@ describe('checkout', () => {
           <CheckoutPage />
         </CartProvider>
       </MemoryRouter>,
+      { wrapper: AuthProvider },
     );
     expect(
       screen.getByText('Add something to your cart before checking out.'),
@@ -70,6 +85,7 @@ describe('checkout', () => {
           <CheckoutPage />
         </CartProvider>
       </MemoryRouter>,
+      { wrapper: AuthProvider },
     );
     const user = userEvent.setup();
     expect(
@@ -113,7 +129,9 @@ describe('checkout', () => {
 
   it('guards duplicate submissions while validation is pending', async () => {
     const complete = vi.fn();
-    const view = render(<CheckoutForm onComplete={complete} />);
+    const view = render(<CheckoutForm onComplete={complete} />, {
+      wrapper: AuthProvider,
+    });
     for (const [label, value] of [
       ['Full name', validDetails.fullName],
       ['Email address', validDetails.email],

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../../../shared/components/Button';
 import { TextField } from '../../../shared/components/TextField';
 import { createProfile, validateAuth } from '../auth.logic';
-import { authActions } from '../auth.state';
+import { useAuth } from '../auth.state';
 import type { AuthFields } from '../auth.types';
 
 interface Props {
@@ -13,6 +13,7 @@ interface Props {
 }
 
 export function AuthForm({ mode }: Props) {
+  const { actions } = useAuth();
   const navigate = useNavigate();
   const [fields, setFields] = useState<AuthFields>({
     name: '',
@@ -46,7 +47,7 @@ export function AuthForm({ mode }: Props) {
         ?.focus();
       return;
     }
-    authActions.signIn(createProfile(fields, mode));
+    actions.signIn(createProfile(fields, mode));
     setFields({ name: '', email: '', password: '' });
     void navigate('/', { replace: true });
   }

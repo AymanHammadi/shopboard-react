@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ProductCard } from '../src/modules/products/components/ProductCard';
@@ -7,14 +7,11 @@ import { ProductImage } from '../src/shared/components/ProductImage';
 import { QuantityControl } from '../src/shared/components/QuantityControl';
 import { AuthForm } from '../src/modules/auth/components/AuthForm';
 import { CartProvider } from '../src/modules/cart/components/CartProvider';
-import { authActions } from '../src/modules/auth/auth.state';
+import { AuthProvider } from '../src/modules/auth/components/AuthProvider';
 import { mascara, perfume } from './fixtures';
 
 beforeEach(() => {
   localStorage.clear();
-  act(() => {
-    authActions.signOut();
-  });
 });
 
 describe('reusable components', () => {
@@ -95,7 +92,9 @@ describe('reusable components', () => {
   it('validates on submit, focuses the first invalid field, and clears corrected errors', async () => {
     render(
       <MemoryRouter>
-        <AuthForm mode="signup" />
+        <AuthProvider>
+          <AuthForm mode="signup" />
+        </AuthProvider>
       </MemoryRouter>,
     );
     expect(
