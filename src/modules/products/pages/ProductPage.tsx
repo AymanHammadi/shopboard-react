@@ -1,21 +1,13 @@
 import { ArrowLeft } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
-import { ApiError, requestErrorMessage } from '../../../shared/api/client';
-import { Button } from '../../../shared/components/Button';
-import { StateMessage } from '../../../shared/components/StateMessage';
-import { usePageTitle } from '../../../shared/usePageTitle';
+import { AsyncBoundary } from '../../../shared/components/AsyncBoundary';
 import { parseProductId } from '../products.logic';
-import { useProduct } from '../products.state';
-import { ProductDetailsView } from '../components/ProductDetailsView';
+import { ProductContent } from '../components/ProductContent';
+import { MissingProduct } from '../components/MissingProduct';
 
 export function ProductPage() {
   const { productId } = useParams();
   const id = parseProductId(productId);
-  const product = useProduct(id);
-  usePageTitle(product.data?.title ?? 'Product');
-  const missing =
-    id === null ||
-    (product.error instanceof ApiError && product.error.status === 404);
 
   return (
     <div className="container page-section">
@@ -23,31 +15,21 @@ export function ProductPage() {
         <ArrowLeft size={17} aria-hidden="true" />
         Back to the shop
       </Link>
-      {missing ? (
-        <StateMessage title="Product not found">
-          <p>This product is no longer on the shelf.</p>
-          <Link to="/" className="button button--primary">
-            Explore products
-          </Link>
-        </StateMessage>
-      ) : product.isPending ? (
-        <div className="detail-loading" role="status">
-          <span>Loading product…</span>
-          <div className="skeleton-media" aria-hidden="true" />
-        </div>
-      ) : product.isError ? (
-        <StateMessage title="Product couldn’t load" role="alert">
-          <p>{requestErrorMessage(product.error)}</p>
-          <Button
-            onClick={() => {
-              void product.refetch();
-            }}
-          >
-            Try again
-          </Button>
-        </StateMessage>
+      {id === null ? (
+        <MissingProduct />
       ) : (
-        <ProductDetailsView key={product.data.id} product={product.data} />
+        <AsyncBoundary
+          key={id}
+          title="Product couldn’t load"
+          fallback={
+            <div className="detail-loading" role="status">
+              <span>Loading product…</span>
+              <div className="skeleton-media" aria-hidden="true" />
+            </div>
+          }
+        >
+          <ProductContent id={id} />
+        </AsyncBoundary>
       )}
     </div>
   );

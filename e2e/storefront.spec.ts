@@ -207,17 +207,77 @@ test('loading, error retry and genuinely empty catalog', async ({ page }) => {
   await expect(
     page.getByRole('status', { name: 'Loading products' }),
   ).toBeVisible();
+  await expect(page.getByRole('banner')).toBeVisible();
+  await expect(page.locator('h1')).toContainText('Good finds.');
   if (release === undefined)
     throw new Error('The delayed response was not initialized.');
   release();
   await expect(
     page.getByRole('heading', { name: 'Products couldn’t load' }),
   ).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'Cart, 0 items', exact: true }),
+  ).toBeVisible();
   shouldFail = false;
   await page.getByRole('button', { name: 'Try again' }).click();
   await expect(
     page.getByRole('heading', { name: 'No products available' }),
   ).toBeVisible();
+});
+
+test('product errors retry inside the page without losing the cart', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page
+    .getByRole('button', { name: 'Add to cart: Essence Mascara', exact: true })
+    .click();
+  let shouldFail = true;
+  await page.route('https://dummyjson.com/products/1', (route) =>
+    route.fulfill(
+      shouldFail ? { status: 500, json: {} } : { json: apiProducts[0] },
+    ),
+  );
+  await page
+    .getByRole('link', { name: 'Essence Mascara', exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', { name: 'Product couldn’t load' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'Back to the shop' }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'Cart, 1 item', exact: true }),
+  ).toBeVisible();
+  shouldFail = false;
+  await page.getByRole('button', { name: 'Try again' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Essence Mascara' }),
+  ).toBeVisible();
+  await expect(page).toHaveTitle('Essence Mascara | ShopBoard');
+});
+
+test('page modules are requested only when their routes open', async ({
+  page,
+}) => {
+  const requests: string[] = [];
+  page.on('request', (request) =>
+    requests.push(new URL(request.url()).pathname),
+  );
+  await page.goto('/');
+  await expect(page.locator('.product-card')).toHaveCount(3);
+  expect(requests.some((path) => path.endsWith('/CartPage.tsx'))).toBe(false);
+  expect(requests.some((path) => path.endsWith('/AuthPage.tsx'))).toBe(false);
+  expect(requests.some((path) => path.endsWith('/ProductPage.tsx'))).toBe(
+    false,
+  );
+  await page.getByRole('link', { name: 'Cart, 0 items', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Your cart is empty' }),
+  ).toBeVisible();
+  expect(requests.some((path) => path.endsWith('/CartPage.tsx'))).toBe(true);
+  expect(requests.some((path) => path.endsWith('/AuthPage.tsx'))).toBe(false);
 });
 
 test('corrupt or blocked storage does not crash the cart', async ({ page }) => {

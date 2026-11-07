@@ -31,7 +31,7 @@ export async function getJson(
   return data;
 }
 
-export function requestErrorMessage(error: Error): string {
+export function requestErrorMessage(error: unknown): string {
   if (error instanceof ApiError) return error.message;
   return 'We could not load the products. Check your connection and try again.';
 }

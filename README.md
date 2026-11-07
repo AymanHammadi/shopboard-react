@@ -42,6 +42,10 @@ Husky runs lint-staged before commits. Staged TypeScript/TSX files receive type-
 - `/login` and `/signup` validate fields and save a local profile. These are simulated flows: any valid email and password of at least eight characters can sign in. Signup does not create an API account. Passwords are never persisted or transmitted. The stored name/email is not a secure session; do not use real credentials. Log out clears the profile.
 - Unknown paths and invalid/missing products have recovery links. Product loading, request errors with Try again, API-empty, filtered-no-match, empty cart, and unavailable images each have their own UI.
 
+Every page is loaded with `React.lazy` when its route opens. `AppLayout` is the shared nested-route layout: navigation, storage notices, and footer stay mounted outside the route Suspense/Error Boundary. A failed page download offers a full reload because React caches a rejected lazy import. Navigation to another route remains available.
+
+Catalog and product requests use TanStack Query's Suspense hooks. `CatalogResults` and `ProductContent` sit inside their own `AsyncBoundary`, so slow or broken data does not remove the catalog hero, product back link, or application shell. Try again resets both the Error Boundary and Query's error latch before retrying. Invalid IDs never request the API; HTTP 404 displays the missing-product state instead of a retryable server failure.
+
 There is no checkout, payment processing, wishlist, or account dashboard. The storefront does not display implementation notices; these limitations belong here.
 
 ## Structure
