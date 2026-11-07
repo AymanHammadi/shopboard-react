@@ -355,7 +355,8 @@ main {
   font-weight: 600;
 }
 .field input,
-.field select {
+.field select,
+.ui-input {
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--control-border);
@@ -367,6 +368,16 @@ main {
 }
 .field input::placeholder {
   color: var(--muted);
+}
+.ui-label {
+  font-size: var(--text-small);
+  font-weight: 600;
+  line-height: 1.5;
+}
+.ui-input:disabled {
+  background: var(--disabled-bg);
+  color: var(--muted);
+  cursor: not-allowed;
 }
 .field select {
   padding-inline-end: 28px;
@@ -889,7 +900,61 @@ main {
   font-size: var(--text-small);
 }
 
+.checkout-heading {
+  margin-block: 16px 32px;
+}
+.checkout-form {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 24px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  min-width: 0;
+}
+.checkout-form fieldset {
+  display: grid;
+  gap: 20px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.checkout-form legend {
+  padding: 0 0 20px;
+  font-size: var(--text-large);
+  font-weight: 600;
+}
+.checkout-field-pair {
+  display: grid;
+  gap: 20px;
+}
+.checkout-form > .button {
+  align-self: start;
+}
+.checkout-items {
+  display: grid;
+  gap: 16px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.checkout-items li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: var(--text-small);
+  overflow-wrap: anywhere;
+}
+.checkout-items strong {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
 @media (min-width: 540px) {
+  .checkout-field-pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .container {
     width: min(1280px, calc(100% - 48px));
   }

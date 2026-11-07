@@ -321,6 +321,7 @@ test('layout fits the viewport and the console has no React errors', async ({
     '/',
     '/products/1',
     '/cart',
+    '/checkout',
     '/login',
     '/signup',
     '/missing',
@@ -334,6 +335,55 @@ test('layout fits the viewport and the console has no React errors', async ({
     ).toBe(true);
   }
   expect(errors).toEqual([]);
+});
+
+test('checkout validates, confirms without payment, and clears the persistent cart', async ({
+  page,
+}) => {
+  await page.goto('/checkout');
+  await expect(
+    page.getByRole('heading', { name: 'Your cart is empty' }),
+  ).toBeVisible();
+  await page.getByRole('link', { name: 'Explore products' }).click();
+  await page
+    .getByRole('button', { name: 'Add to cart: Essence Mascara', exact: true })
+    .click();
+  await page.getByRole('link', { name: 'Cart, 1 item', exact: true }).click();
+  await page.getByRole('link', { name: 'Checkout', exact: true }).click();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Your order' })).toBeVisible();
+  await page.getByRole('button', { name: 'Confirm order' }).click();
+  await expect(page.getByLabel('Full name')).toBeFocused();
+  await expect(page.getByText('Enter a valid email address.')).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'Cart, 1 item', exact: true }),
+  ).toBeVisible();
+  await page.getByLabel('Full name').fill('Alex Doe');
+  await page.getByLabel('Email address').fill('alex@example.com');
+  await page.getByLabel('Street address').fill('12 Garden Street');
+  await page.getByLabel('City').fill('London');
+  await page.getByLabel('Postal code').fill('SW1A 1AA');
+  await page.getByLabel('Country').fill('United Kingdom');
+  expect(
+    await page
+      .getByLabel('Country')
+      .evaluate((node) => getComputedStyle(node).fontSize),
+  ).toBe('16px');
+  await page.getByLabel('Country').press('Enter');
+  await expect(
+    page.getByRole('heading', { name: 'Order confirmed' }),
+  ).toBeFocused();
+  await expect(page.getByText(/1 item, totaling \$9.99/)).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'Cart, 0 items', exact: true }),
+  ).toBeVisible();
+  expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(
+    '12 Garden Street',
+  );
+  await page.reload();
+  await expect(
+    page.getByRole('heading', { name: 'Your cart is empty' }),
+  ).toBeVisible();
 });
 
 test('pagination stays local and resets when filters change', async ({

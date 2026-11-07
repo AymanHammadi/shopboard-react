@@ -21,10 +21,11 @@ export function CartSummary({ quantity, subtotalCents }: Props) {
         <strong>{formatMoney(subtotalCents)}</strong>
       </div>
       <p className="small muted">Prices in USD.</p>
-      <Link to="/" className="button button--primary">
-        Continue shopping
+      <Link to="/checkout" className="button button--primary">
+        Checkout
         <ArrowUpRight size={18} aria-hidden="true" />
       </Link>
+      <Link to="/">Continue shopping</Link>
     </aside>
   );
 }

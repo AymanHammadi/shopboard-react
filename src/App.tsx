@@ -19,6 +19,11 @@ const CartPage = lazy(() =>
     default: module.CartPage,
   })),
 );
+const CheckoutPage = lazy(() =>
+  import('./modules/checkout/pages/CheckoutPage').then((module) => ({
+    default: module.CheckoutPage,
+  })),
+);
 const AuthPage = lazy(() =>
   import('./modules/auth/pages/AuthPage').then((module) => ({
     default: module.AuthPage,
@@ -42,6 +47,7 @@ export function App() {
               <Route index element={<CatalogPage />} />
               <Route path="/products/:productId" element={<ProductPage />} />
               <Route path="/cart" element={<CartPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/login" element={<AuthPage mode="login" />} />
               <Route path="/signup" element={<AuthPage mode="signup" />} />
               <Route path="*" element={<NotFoundPage />} />

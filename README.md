@@ -39,6 +39,7 @@ Husky runs lint-staged before commits. Staged TypeScript/TSX files receive type-
 - `/` loads the catalog. Search matches title, description, or category. Filters combine; Default restores API order. Search, category, sort, and page are URL parameters. Reset clears them. Pagination shows 12 products per page.
 - `/products/:productId` loads the full product, image gallery, availability, shipping, returns, and warranty information.
 - `/cart` supports increasing/decreasing quantities, removing items, confirmed clearing, and USD subtotal. The guest cart survives refresh, login, and logout.
+- `/checkout` validates contact and shipping details with react-hook-form and a single Zod schema. It shows a local confirmation and clears the persisted cart only after validation succeeds. An empty cart has a link back to products, not an unusable form. No payment, shipping request, email, or backend order is created. Shipping details are never saved; the confirmation exists only until leaving or refreshing the page.
 - `/login` and `/signup` validate fields and save a local profile. These are simulated flows: any valid email and password of at least eight characters can sign in. Signup does not create an API account. Passwords are never persisted or transmitted. The stored name/email is not a secure session; do not use real credentials. Log out clears the profile.
 - Unknown paths and invalid/missing products have recovery links. Product loading, request errors with Try again, API-empty, filtered-no-match, empty cart, and unavailable images each have their own UI.
 
@@ -46,7 +47,9 @@ Every page is loaded with `React.lazy` when its route opens. `AppLayout` is the 
 
 Catalog and product requests use TanStack Query's Suspense hooks. `CatalogResults` and `ProductContent` sit inside their own `AsyncBoundary`, so slow or broken data does not remove the catalog hero, product back link, or application shell. Try again resets both the Error Boundary and Query's error latch before retrying. Invalid IDs never request the API; HTTP 404 displays the missing-product state instead of a retryable server failure.
 
-There is no checkout, payment processing, wishlist, or account dashboard. The storefront does not display implementation notices; these limitations belong here.
+There is no payment processing, wishlist, or account dashboard. The storefront does not display implementation notices; these limitations belong here.
+
+Checkout uses [shadcn/ui Input](https://ui.shadcn.com/r/styles/new-york/input.json) and [Label](https://ui.shadcn.com/r/styles/new-york/label.json) source components in `src/shared/components/ui`. They retain native input props/ref support and Radix's label primitive, adapted to React 19 ref props and this repo's plain CSS rather than adding Tailwind. Their MIT notice is included. Form values/errors belong to react-hook-form; `CheckoutField` consumes its form Context. Validation runs on blur/submit and revalidates touched fields as they are corrected. Errors are associated with inputs, invalid submission focuses the first error, and a submission lock prevents duplicate confirmations.
 
 ## Structure
 
