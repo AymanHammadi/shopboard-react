@@ -5,7 +5,7 @@ import { QuantityControl } from '../../../shared/components/QuantityControl';
 import { Button } from '../../../shared/components/Button';
 import { formatMoney } from '../../../shared/money';
 import { categoryNames } from '../../products/products.data';
-import { cartActions } from '../cart.state';
+import { useCart } from '../cart.state';
 import type { CartItem } from '../cart.types';
 
 interface Props {
@@ -14,6 +14,7 @@ interface Props {
 }
 
 export function CartRow({ item, onRemove }: Props) {
+  const { actions } = useCart();
   const { product, quantity } = item;
   return (
     <li className="cart-row">
@@ -32,7 +33,7 @@ export function CartRow({ item, onRemove }: Props) {
             name={product.title}
             value={quantity}
             max={product.stock}
-            onChange={(next) => cartActions.changeQuantity(product.id, next)}
+            onChange={(next) => actions.changeQuantity(product.id, next)}
           />
           <Button
             variant="ghost"

@@ -4,19 +4,19 @@ import { Link } from 'react-router-dom';
 import { Button } from '../../../shared/components/Button';
 import { StateMessage } from '../../../shared/components/StateMessage';
 import { usePageTitle } from '../../../shared/usePageTitle';
-import { cartActions, useCart } from '../cart.state';
+import { useCart } from '../cart.state';
 import { cartTotals } from '../cart.logic';
 import { CartRow } from '../components/CartRow';
 import { CartSummary } from '../components/CartSummary';
 
 export function CartPage() {
   usePageTitle('Your cart');
-  const { value: cart } = useCart();
+  const { value: cart, actions } = useCart();
   const totals = cartTotals(cart);
   const heading = useRef<HTMLHeadingElement>(null);
 
   function remove(productId: number) {
-    cartActions.remove(productId);
+    actions.remove(productId);
     heading.current?.focus();
   }
 
@@ -32,7 +32,7 @@ export function CartPage() {
           disabled={cart.length === 0}
           onClick={() => {
             if (window.confirm('Remove all items from your cart?')) {
-              cartActions.clear();
+              actions.clear();
               heading.current?.focus();
             }
           }}

@@ -60,7 +60,7 @@ src/
     cart/
       cart.types.ts        # Cart contracts and stored-data schema
       cart.logic.ts        # Pure immutable quantity rules and totals
-      cart.state.ts        # Cart store, persistence and actions
+      cart.state.ts        # Cart Context contract and persisted-state factory
       components/
       pages/
     auth/
@@ -96,6 +96,8 @@ Cart quantities start at 1, merge by product ID, and cannot exceed the product's
 
 The versioned keys are `shopboard:cart:v1` and `shopboard:profile:v1`. Stored values are validated, including positive quantities, stock bounds, and unique product IDs. Corrupt or blocked storage shows a warning without crashing. Failed writes retain in-memory changes and explain that refresh may lose them. Open tabs receive storage-event updates.
 
+`CartProvider` owns the single cart instance and exposes its snapshot and actions through React Context. Context fits this small app without adding a state library. The provider uses the tested storage adapter with `useSyncExternalStore` to observe browser storage changes; it does not copy the cart into React state or synchronize copies with effects. Components can only change the cart through `useCart().actions`, not a module-global store.
+
 Cart entries contain a small product snapshot so they remain readable after refresh without waiting for the catalog. Prices and stock are not continuously reconciled with DummyJSON. Adding the product again updates its snapshot. A real checkout would need server-side price and inventory validation.
 
 ## Component tree
@@ -105,7 +107,8 @@ Every project component below has its own matching `.tsx` file. `{}` means no pr
 ```text
 App {}
 └─ QueryClientProvider { client }
-   └─ BrowserRouter {}
+   └─ CartProvider { children }
+      └─ BrowserRouter {}
       ├─ RouteFocus {}
       ├─ Header {}
       │  └─ Button { variant, onClick, children } [signed in]
@@ -164,7 +167,7 @@ App {}
 | Catalog and product request data/status/cache    | TanStack Query through `products.state.ts`                            |
 | Search, category, sort, page                     | URL parameters managed by `CatalogPage`                               |
 | Filtered/sorted products, categories, page count | Derived by pure product rules during render                           |
-| Cart items and persistence issues                | `cart.state.ts` store; subscribed with `useSyncExternalStore`         |
+| Cart items and persistence issues                | `CartProvider` through Context; one persisted-state instance          |
 | Cart quantity/subtotal and stock-limited buttons | Derived from cart data, not duplicated in state                       |
 | Local signed-in profile and persistence issues   | `auth.state.ts` store                                                 |
 | Form values, touched fields, submitted flag      | `AuthForm`; errors derived by `auth.logic.ts`                         |

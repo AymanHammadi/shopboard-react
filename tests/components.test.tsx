@@ -6,13 +6,13 @@ import { ProductCard } from '../src/modules/products/components/ProductCard';
 import { ProductImage } from '../src/shared/components/ProductImage';
 import { QuantityControl } from '../src/shared/components/QuantityControl';
 import { AuthForm } from '../src/modules/auth/components/AuthForm';
-import { cartActions } from '../src/modules/cart/cart.state';
+import { CartProvider } from '../src/modules/cart/components/CartProvider';
 import { authActions } from '../src/modules/auth/auth.state';
 import { mascara, perfume } from './fixtures';
 
 beforeEach(() => {
+  localStorage.clear();
   act(() => {
-    cartActions.clear();
     authActions.signOut();
   });
 });
@@ -21,7 +21,9 @@ describe('reusable components', () => {
   it('adds a product and announces the cart quantity', async () => {
     render(
       <MemoryRouter>
-        <ProductCard product={mascara} />
+        <CartProvider>
+          <ProductCard product={mascara} />
+        </CartProvider>
       </MemoryRouter>,
     );
     await userEvent.click(
@@ -36,7 +38,9 @@ describe('reusable components', () => {
   it('disables a sold-out product without rendering a stray zero', () => {
     const { container } = render(
       <MemoryRouter>
-        <ProductCard product={perfume} />
+        <CartProvider>
+          <ProductCard product={perfume} />
+        </CartProvider>
       </MemoryRouter>,
     );
     expect(
@@ -48,7 +52,9 @@ describe('reusable components', () => {
   it('updates the quantity immediately and enforces stock', async () => {
     render(
       <MemoryRouter>
-        <ProductCard product={{ ...mascara, stock: 1 }} />
+        <CartProvider>
+          <ProductCard product={{ ...mascara, stock: 1 }} />
+        </CartProvider>
       </MemoryRouter>,
     );
     await userEvent.click(

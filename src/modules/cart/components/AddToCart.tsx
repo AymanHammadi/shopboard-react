@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react';
 import { Button } from '../../../shared/components/Button';
-import { cartActions, useCart } from '../cart.state';
+import { useCart } from '../cart.state';
 import type { Product } from '../../products/products.types';
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
 }
 
 export function AddToCart({ product, quantity = 1 }: Props) {
-  const { value: cart } = useCart();
+  const { value: cart, actions } = useCart();
   const count =
     cart.find((item) => item.product.id === product.id)?.quantity ?? 0;
   const unavailable = product.stock === 0 || count >= product.stock;
@@ -25,7 +25,7 @@ export function AddToCart({ product, quantity = 1 }: Props) {
       <Button
         variant="primary"
         disabled={unavailable}
-        onClick={() => cartActions.add(product, quantity)}
+        onClick={() => actions.add(product, quantity)}
         aria-label={`${label}: ${product.title}`}
       >
         {unavailable ? null : <Plus size={18} aria-hidden="true" />}
