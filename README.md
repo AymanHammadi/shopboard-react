@@ -1,6 +1,6 @@
 # ShopBoard
 
-A React + TypeScript storefront with API products, search, category filtering, sorting, product details, and a persistent cart. The interface keeps the lime/sage identity of the original ShopBoard.
+A Next.js 16 App Router + React 19 + TypeScript storefront with API products, search, category filtering, sorting, product details, and a persistent cart. Converted in place from the Vite assignment, with the original lime/sage interface and feature modules preserved.
 
 ## Run locally
 
@@ -11,20 +11,21 @@ npm ci
 npm run dev
 ```
 
-Open the URL printed by Vite. No API key, environment file, backend, or database is needed. Product requests and images require an internet connection.
+Open `http://localhost:3000`, or the URL printed by Next.js. No API key, environment file, backend, or database is needed. Product requests and images require an internet connection.
 
-| Command                | Purpose                                         |
-| ---------------------- | ----------------------------------------------- |
-| `npm run typecheck`    | Check strict TypeScript                         |
-| `npm run lint`         | Type-aware ESLint, zero warnings                |
-| `npm run format`       | Format project files                            |
-| `npm run format:check` | Verify formatting                               |
-| `npm test`             | Run unit and component tests                    |
-| `npm run test:watch`   | Watch unit and component tests                  |
-| `npm run test:e2e`     | Run desktop and 360px Chromium tests            |
-| `npm run build`        | Typecheck and build into `dist/`                |
-| `npm run preview`      | Serve the production build locally              |
-| `npm run check`        | Typecheck, lint, format check, tests, and build |
+| Command                | Purpose                                          |
+| ---------------------- | ------------------------------------------------ |
+| `npm run typecheck`    | Check strict TypeScript                          |
+| `npm run lint`         | Type-aware ESLint, zero warnings                 |
+| `npm run format`       | Format project files                             |
+| `npm run format:check` | Verify formatting                                |
+| `npm test`             | Run unit and component tests                     |
+| `npm run test:watch`   | Watch unit and component tests                   |
+| `npm run test:e2e`     | Run desktop and 360px Chromium tests             |
+| `npm run build`        | Build Next.js into `.next/`, including typecheck |
+| `npm run start`        | Serve the production build                       |
+| `npm run preview`      | Serve the production build locally               |
+| `npm run check`        | Typecheck, lint, format check, tests, and build  |
 
 Before the first browser test run:
 
@@ -36,33 +37,35 @@ Husky runs the full `npm run check` before commits. A type, lint, format, test, 
 
 ### API base URL and required failure modes
 
-The default API is `https://dummyjson.com`. Set `VITE_API_BASE_URL` to override it; restart Vite after changing it. The value is public and baked into production builds, so it must not contain secrets.
+The default API is `https://dummyjson.com`. Set `NEXT_PUBLIC_API_BASE_URL` to override it; restart Next.js after changing it. This replaces the former `VITE_API_BASE_URL`. The value is public and baked into production builds, so it must not contain secrets.
 
-DummyJSON does not provide the assignment's path-based test modes. The Vite development server supplies these under `/api`, proxying normal/delayed product requests to DummyJSON:
+DummyJSON does not provide the assignment's path-based test modes. The Next.js route handler in `src/app/api/[...path]/route.ts` supplies these under `/api` during development, proxying normal/delayed product requests to DummyJSON:
 
 ```sh
-VITE_API_BASE_URL=/api npm run dev
-VITE_API_BASE_URL=/api/delay/3000 npm run dev
-VITE_API_BASE_URL=/api/fail/500 npm run dev
-VITE_API_BASE_URL=/api/empty npm run dev
+NEXT_PUBLIC_API_BASE_URL=/api npm run dev
+NEXT_PUBLIC_API_BASE_URL=/api/delay/3000 npm run dev
+NEXT_PUBLIC_API_BASE_URL=/api/fail/500 npm run dev
+NEXT_PUBLIC_API_BASE_URL=/api/empty npm run dev
 ```
 
 Run one command at a time. Delay holds requests for three seconds; the shell and catalog hero stay usable. Failure shows Try again while the cart stays accessible. Empty shows empty shelves and missing product details. These modes apply to both catalog and detail requests. A persistent failure mode keeps failing on retry; restart with `/api` and reload to recover. Tests also cover a failing response followed by a successful retry.
 
-The scenario middleware and `/api` proxy are development-only. For production, omit the override to use DummyJSON, or configure a real CORS-enabled API. Do not build with `/api` unless your host provides that endpoint.
+The scenario route returns 404 in production. For production, omit the override to use DummyJSON, or configure a real CORS-enabled API. Do not build with `/api` as the base URL.
 
 ## Pages and behavior
 
 - `/` loads the catalog. Search matches title, description, or category. Filters combine; Default restores API order. Search, category, sort, and page are URL parameters. Reset clears them. Pagination shows 12 products per page.
-- `/products/:productId` loads the full product, image gallery, availability, shipping, returns, and warranty information.
+- `/products/[productId]` loads the full product, image gallery, availability, shipping, returns, and warranty information.
 - `/cart` supports increasing/decreasing quantities, removing items, confirmed clearing, and USD subtotal. The guest cart survives refresh, login, and logout.
 - `/checkout` validates contact and shipping details with react-hook-form and a single Zod schema. It shows a local confirmation and clears the persisted cart only after validation succeeds. An empty cart has a link back to products, not an unusable form. No payment, shipping request, email, or backend order is created. Shipping details are never saved; the confirmation exists only until leaving or refreshing the page.
 - `/login` and `/signup` validate fields and save a local profile. These are simulated flows: any valid email and password of at least eight characters can sign in. Signup does not create an API account. Passwords are never persisted or transmitted. The stored name/email is not a secure session; do not use real credentials. Log out clears the profile.
 - Unknown paths and invalid/missing products have recovery links. Product loading, request errors with Try again, API-empty, filtered-no-match, empty cart, and unavailable images each have their own UI.
 
-Every page is loaded with `React.lazy` when its route opens. `AppLayout` is the shared nested-route layout: navigation, storage notices, and footer stay mounted outside the route Suspense/Error Boundary. A failed page download offers a full reload because React caches a rejected lazy import. Navigation to another route remains available.
+Next.js owns routing and route-level code splitting through `src/app`. Route files are Server Components that compose the existing feature pages; interactive feature pages use explicit client boundaries. `layout.tsx` supplies metadata, the font preload, providers, and the shared `AppLayout`. Navigation, storage notices, and footer stay mounted while page content changes. `loading.tsx`, `error.tsx`, and `not-found.tsx` supply route loading, retry/reload, and unknown-path recovery. Links use `next/link`; navigation hooks come from `next/navigation`. There is no React Router or catch-all SPA page.
 
 Catalog and product requests use TanStack Query's Suspense hooks. `CatalogResults` and `ProductContent` sit inside their own `AsyncBoundary`, so slow or broken data does not remove the catalog hero, product back link, or application shell. Try again resets both the Error Boundary and Query's error latch before retrying. Invalid IDs never request the API; HTTP 404 displays the missing-product state instead of a retryable server failure.
+
+Product fetching intentionally remains client-side. `BrowserData` renders the same loading placeholder on the server and during hydration, then mounts the query consumers in the browser. This keeps builds independent of DummyJSON availability and preserves the assignment's browser-side request/retry behavior. The shell and hero have server-rendered HTML, but product data is not server-rendered. Static titles use Next.js metadata. Product and checkout states own their React `<title>` elements; those routes clear the inherited metadata title so streamed metadata cannot overwrite a loaded product name or local confirmation. Catalog filters use Next.js's native History API integration so typing does not trigger server requests.
 
 There is no payment processing, wishlist, or account dashboard. The storefront does not display implementation notices; these limitations belong here.
 
@@ -72,6 +75,19 @@ Checkout uses [shadcn/ui Input](https://ui.shadcn.com/r/styles/new-york/input.js
 
 ```text
 src/
+  app/
+    layout.tsx             # Server layout, metadata, styles and shared shell
+    providers.tsx          # Client-owned QueryClient, auth and cart providers
+    page.tsx               # Catalog route
+    products/[productId]/page.tsx
+    cart/page.tsx
+    checkout/page.tsx
+    login/page.tsx
+    signup/page.tsx
+    loading.tsx            # Route loading UI
+    error.tsx              # Route retry/reload UI
+    not-found.tsx          # Unknown-route recovery with HTTP 404
+    api/[...path]/route.ts # Development-only API scenarios
   modules/
     products/
       products.types.ts    # Product, ProductDetails, Category, filter contracts
@@ -103,18 +119,15 @@ src/
       ui/                  # Adapted shadcn Input/Label and their license
     storage.ts             # Versioned storage adapter and subscriptions
     money.ts               # Integer-cent conversion and USD formatting
-    usePageTitle.ts
-  App.tsx                  # Providers and routes
-  main.tsx                 # StrictMode entry point
   styles.css               # Tokens and responsive styles
 tests/                     # Unit/component tests and test-only fixtures
 e2e/                       # Browser flows with intercepted API responses
-tooling/                   # Development-only API scenario middleware
+tooling/                   # Development-only API scenario resolution
 ```
 
 Components import feature contracts, rules, state, or feature components directly. There are no barrel files. `*.logic.ts` does not access storage or import React. Only the shared HTTP client calls `fetch`; only the storage adapter accesses `localStorage`.
 
-This assignment continues in the same React repository as Day 4.
+This assignment continues in the same repository as Day 4. Vite remains only in the Vitest test toolchain; development and production use Next.js.
 
 ## API and cart decisions
 
@@ -126,23 +139,23 @@ Cart quantities start at 1, merge by product ID, and cannot exceed the product's
 
 The versioned keys are `shopboard:cart:v1` and `shopboard:profile:v1`. Stored values are validated, including positive quantities, stock bounds, and unique product IDs. Corrupt or blocked storage shows a warning without crashing. Failed writes retain in-memory changes and explain that refresh may lose them. Open tabs receive storage-event updates.
 
-`CartProvider` owns the single cart instance and exposes its snapshot and actions through React Context. Context fits this small app without adding a state library. The provider uses the tested storage adapter with `useSyncExternalStore` to observe browser storage changes; it does not copy the cart into React state or synchronize copies with effects. Components can only change the cart through `useCart().actions`, not a module-global store.
+`CartProvider` owns the single cart instance and exposes its snapshot and actions through React Context. Context fits this small app without adding a state library. The provider uses the tested storage adapter with `useSyncExternalStore` to observe browser storage changes; it does not copy the cart into React state or synchronize copies with effects. Stable empty server snapshots prevent server-side storage access and hydration mismatches; the validated browser snapshot appears after hydration. `AuthProvider` uses the same pattern. Components can only change the cart through `useCart().actions`, not a module-global store. `Providers` also owns its QueryClient rather than sharing a module-global cache between server requests.
 
 Cart entries contain a small product snapshot so they remain readable after refresh without waiting for the catalog. Prices and stock are not continuously reconciled with DummyJSON. Adding the product again updates its snapshot. A real checkout would need server-side price and inventory validation.
 
 ## Component tree
 
-`StrictMode` wraps `App` in `main.tsx`. Each application component below has a matching `.tsx` file. The tree shows feature-level props; native elements, icons, repeated Button instances, and library internals are omitted. All route pages are lazy-loaded.
+Next.js enables Strict Mode for the App Router. The tree shows feature-level props; native elements, icons, repeated Button instances, and library internals are omitted. Next.js handles route-level splitting.
 
 ```text
-App {}
-└─ QueryClientProvider { client } → AuthProvider { children }
+RootLayout { children } [app/layout.tsx, server]
+└─ Providers { children } → QueryClientProvider { client } → AuthProvider { children }
    └─ CartProvider { children }
-      └─ BrowserRouter → Routes → AppLayout {}
+      └─ AppLayout { children } [server]
          ├─ RouteFocus {}
          ├─ Header {}
          ├─ StorageNotice {}
-         ├─ ErrorBoundary → Suspense → Outlet
+         ├─ Next.js route Error Boundary → Suspense → page.tsx
          │  ├─ CatalogPage {} [/]
          │  │  ├─ CatalogHero {}
          │  │  └─ AsyncBoundary { title, fallback, children }
@@ -155,7 +168,7 @@ App {}
          │  │        │     ├─ ProductImage { src, alt, loading }
          │  │        │     └─ AddToCart { product }
          │  │        └─ Pagination { page, pages, onChange }
-         │  ├─ ProductPage {} [/products/:productId]
+         │  ├─ ProductPage { productId } [/products/[productId]]
          │  │  ├─ MissingProduct {} [invalid ID]
          │  │  └─ AsyncBoundary { title, fallback, children } [key: id]
          │  │     └─ ProductContent { id }
@@ -187,7 +200,7 @@ App {}
          └─ Footer {}
 ```
 
-`AsyncBoundary` composes QueryErrorResetBoundary → ErrorBoundary → Suspense. Its error fallback uses StateMessage and a retry Button. `MissingProduct` also renders StateMessage. `Button` accepts native button props plus `variant`; QuantityControl and AddToCart compose it. Input and Label accept their native/primitive props, including refs. Other reusable components use typed `Props` interfaces.
+`AsyncBoundary` composes QueryErrorResetBoundary → ErrorBoundary → Suspense → BrowserData. Its error fallback uses StateMessage and a retry Button. `MissingProduct` also renders StateMessage. `Button` accepts native button props plus `variant`; QuantityControl and AddToCart compose it. Input and Label accept their native/primitive props, including refs. Other reusable components use typed `Props` interfaces.
 
 ### State ownership
 
@@ -214,8 +227,17 @@ The required Vercel skills are vendored under `.claude/skills/vercel-react-best-
 
 ## Checks and hosting
 
-Unit/component tests cover product ordering, immutable cart rules, Context ownership, cents, authentication/checkout validation, duplicate submissions, API mapping/scenarios, boundary retry, storage corruption/failures, and reusable UI behavior. Browser tests intercept API responses for repeatable search/cart/auth/checkout flows, lazy page loading, loading/error/empty states, stock limits, missing routes, pagination, persistence, Console checks, and viewport overflow. Test fixtures are never imported by application code. Deliberately injected API errors produce expected HTTP/React development error logs; normal-route Console checks must remain clean.
+Unit/component tests cover product ordering, immutable cart rules, Context ownership, cents, authentication/checkout validation, duplicate submissions, API mapping/scenarios, route and data-boundary retry, server-safe storage snapshots, storage corruption/failures, and reusable UI behavior. Browser tests intercept API responses for repeatable search/cart/auth/checkout flows, App Router transitions, server HTML without JavaScript, loading/error/empty states, stock limits, real unknown-route 404s, pagination, persistence, Console checks, and viewport overflow. Test fixtures are never imported by application code. Deliberately injected API errors and unknown-route 404s produce expected HTTP/development logs; normal-route Console checks must remain clean.
+
+Run the same browser suite against the production server after building:
+
+```sh
+npm run build
+SHOPBOARD_E2E_PRODUCTION=1 npm run test:e2e
+```
+
+This also checks that scenario endpoints return 404 in production. CI tests both server modes; production tests catch differences such as streamed metadata replacing browser-owned titles.
 
 ESLint 9 is used because the accessibility plugin currently supports it. A scoped `minimatch` override patches the type-aware lint toolchain's dependency for [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249); no runtime package is overridden.
 
-To host, publish `dist/` on a static host with SPA fallback to `index.html`. Direct visits to `/cart` and `/products/1` require that fallback. No hosting account or deployment is configured by this project.
+To host, use a Next.js-compatible platform, or run `npm run build` followed by `npm run start` on a Node server. The build output is `.next/`; it is not a static `dist/` bundle and does not use an `index.html` fallback. Direct visits to `/cart` and `/products/1` are handled by Next.js. No hosting account or deployment is configured by this project.
