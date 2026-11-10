@@ -23,7 +23,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev -- --host 127.0.0.1 --port 5197 --strictPort',
+    command:
+      process.env.SHOPBOARD_E2E_PRODUCTION === '1'
+        ? 'npm run start -- --hostname 127.0.0.1 --port 5197'
+        : 'npm run dev -- --hostname 127.0.0.1 --port 5197',
     url: 'http://127.0.0.1:5197',
     reuseExistingServer: false,
   },

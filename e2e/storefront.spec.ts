@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { apiProducts } from '../tests/fixtures';
+import { apiProducts, mascara } from '../tests/fixtures';
 
 test.beforeEach(async ({ page }) => {
   await page.route('https://dummyjson.com/products**', async (route) => {
@@ -120,6 +120,8 @@ test('product details, stock cap and missing product routes', async ({
   await expect(
     page.getByRole('heading', { name: 'Essence Mascara' }),
   ).toBeVisible();
+  await expect(page).toHaveTitle('Essence Mascara | ShopBoard');
+  await expect(page.locator('title')).toHaveCount(1);
   const increase = page.getByRole('button', {
     name: 'Increase quantity of Essence Mascara',
   });
@@ -135,10 +137,12 @@ test('product details, stock cap and missing product routes', async ({
   await expect(
     page.getByRole('heading', { name: 'Product not found' }),
   ).toBeVisible();
+  await expect(page).toHaveTitle('Product not found | ShopBoard');
   await page.goto('/products/99999');
   await expect(
     page.getByRole('heading', { name: 'Product not found' }),
   ).toBeVisible();
+  await expect(page).toHaveTitle('Product not found | ShopBoard');
   await page.goto('/missing');
   await expect(
     page.getByRole('heading', { name: 'Page not found' }),
@@ -258,32 +262,42 @@ test('product errors retry inside the page without losing the cart', async ({
   await expect(page).toHaveTitle('Essence Mascara | ShopBoard');
 });
 
-test('page modules are requested only when their routes open', async ({
-  page,
-}) => {
-  const requests: string[] = [];
-  page.on('request', (request) =>
-    requests.push(new URL(request.url()).pathname),
-  );
+test('App Router navigation preserves the shared layout', async ({ page }) => {
+  const routeRequests: string[] = [];
+  page.on('request', (request) => {
+    if (request.headers().rsc === '1') {
+      routeRequests.push(new URL(request.url()).pathname);
+    }
+  });
   await page.goto('/');
   await expect(page.locator('.product-card')).toHaveCount(3);
-  expect(requests.some((path) => path.endsWith('/CartPage.tsx'))).toBe(false);
-  expect(requests.some((path) => path.endsWith('/AuthPage.tsx'))).toBe(false);
-  expect(requests.some((path) => path.endsWith('/ProductPage.tsx'))).toBe(
-    false,
-  );
+  const header = await page.getByRole('banner').elementHandle();
+  if (header === null) throw new Error('Missing shared header');
   await page.getByRole('link', { name: 'Cart, 0 items', exact: true }).click();
   await expect(
     page.getByRole('heading', { name: 'Your cart is empty' }),
   ).toBeVisible();
-  expect(requests.some((path) => path.endsWith('/CartPage.tsx'))).toBe(true);
-  expect(requests.some((path) => path.endsWith('/AuthPage.tsx'))).toBe(false);
+  await expect(page).toHaveURL('/cart');
+  expect(routeRequests).toContain('/cart');
+  expect(await header.evaluate((element) => element.isConnected)).toBe(true);
 });
 
-test('development failure and empty base URLs reach the real recovery UI', async ({
+test('API scenarios are available only during development', async ({
   page,
   baseURL,
 }) => {
+  if (process.env.SHOPBOARD_E2E_PRODUCTION === '1') {
+    for (const path of [
+      '/api/products',
+      '/api/fail/500/products',
+      '/api/empty/products',
+      '/api/delay/50/products',
+    ]) {
+      const response = await page.request.get(path);
+      expect(response.status()).toBe(404);
+    }
+    return;
+  }
   let mode = 'fail/500';
   await page.route('https://dummyjson.com/products?**', async (route) => {
     const response = await route.fetch({
@@ -302,23 +316,25 @@ test('development failure and empty base URLs reach the real recovery UI', async
   ).toBeVisible();
 });
 
-test('a failed page download keeps navigation available and reload can retry', async ({
-  page,
-}) => {
-  let shouldFail = true;
-  await page.route('**/src/modules/cart/pages/CartPage.tsx', (route) =>
-    shouldFail ? route.abort('failed') : route.continue(),
-  );
-  await page.goto('/cart');
-  await expect(
-    page.getByRole('heading', { name: 'This page couldn’t load' }),
-  ).toBeVisible();
-  await expect(page.getByRole('banner')).toBeVisible();
-  shouldFail = false;
-  await page.getByRole('button', { name: 'Reload page' }).click();
-  await expect(
-    page.getByRole('heading', { name: 'Your cart is empty' }),
-  ).toBeVisible();
+test.describe('server rendering', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('serves the shell without JavaScript and returns a real 404 for unknown routes', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await expect(page.getByRole('banner')).toBeVisible();
+    await expect(page.locator('h1')).toContainText('Good finds.');
+    await expect(
+      page.getByRole('status', { name: 'Loading products' }),
+    ).toBeVisible();
+    await expect(page).toHaveTitle('Everyday, upgraded. | ShopBoard');
+    const response = await page.goto('/missing');
+    expect(response?.status()).toBe(404);
+    await expect(
+      page.getByRole('heading', { name: 'Page not found' }),
+    ).toBeVisible();
+  });
 });
 
 test('a slow catalog does not block navigating to the cart', async ({
@@ -351,7 +367,7 @@ test('corrupt or blocked storage does not crash the cart', async ({ page }) => {
     localStorage.setItem('shopboard:cart:v1', '{invalid}');
   });
   await page.goto('/cart');
-  await expect(page.getByRole('alert')).toContainText('Cart:');
+  await expect(page.locator('.storage-notice')).toContainText('Cart:');
   await expect(
     page.getByRole('heading', { name: 'Your cart is empty' }),
   ).toBeVisible();
@@ -359,7 +375,7 @@ test('corrupt or blocked storage does not crash the cart', async ({ page }) => {
   await page
     .getByRole('button', { name: 'Add to cart: Essence Mascara', exact: true })
     .click();
-  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.locator('.storage-notice')).toHaveCount(0);
   await page.evaluate(() => {
     Storage.prototype.setItem = () => {
       throw new Error('Storage blocked');
@@ -368,7 +384,9 @@ test('corrupt or blocked storage does not crash the cart', async ({ page }) => {
   await page
     .getByRole('button', { name: 'Add to cart: Essence Mascara', exact: true })
     .click();
-  await expect(page.getByRole('alert')).toContainText('could not be saved');
+  await expect(page.locator('.storage-notice')).toContainText(
+    'could not be saved',
+  );
   await expect(
     page.getByRole('link', { name: 'Cart, 2 items', exact: true }),
   ).toBeVisible();
@@ -390,7 +408,6 @@ test('layout fits the viewport and the console has no React errors', async ({
     '/checkout',
     '/login',
     '/signup',
-    '/missing',
   ]) {
     await page.goto(path);
     await expect(page.locator('h1')).toBeVisible();
@@ -422,6 +439,8 @@ test('checkout validates, confirms without payment, and clears the persistent ca
     .click();
   await page.getByRole('link', { name: 'Cart, 1 item', exact: true }).click();
   await page.getByRole('link', { name: 'Checkout', exact: true }).click();
+  await expect(page).toHaveURL('/checkout');
+  await expect(page.getByRole('heading', { name: 'Your order' })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Your order' })).toBeVisible();
   await page.getByRole('button', { name: 'Confirm order' }).click();
@@ -450,6 +469,8 @@ test('checkout validates, confirms without payment, and clears the persistent ca
   await expect(
     page.getByRole('heading', { name: 'Order confirmed' }),
   ).toBeFocused();
+  await expect(page).toHaveTitle('Order confirmed | ShopBoard');
+  await expect(page.locator('title')).toHaveCount(1);
   await expect(page.getByText(/1 item, totaling \$9.99/)).toBeVisible();
   await expect(
     page.getByRole('link', { name: 'Cart, 0 items', exact: true }),
@@ -462,6 +483,30 @@ test('checkout validates, confirms without payment, and clears the persistent ca
     page.getByRole('heading', { name: 'Your cart is empty' }),
   ).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test('checkout restores the profile and cart after server hydration', async ({
+  page,
+}) => {
+  await page.addInitScript(
+    ({ product }) => {
+      localStorage.setItem(
+        'shopboard:profile:v1',
+        JSON.stringify({ name: 'Alex Doe', email: 'alex@example.com' }),
+      );
+      localStorage.setItem(
+        'shopboard:cart:v1',
+        JSON.stringify([{ product, quantity: 1 }]),
+      );
+    },
+    { product: mascara },
+  );
+  await page.goto('/checkout');
+  await expect(page.getByRole('heading', { name: 'Your order' })).toBeVisible();
+  await expect(page.getByLabel('Full name')).toHaveValue('Alex Doe');
+  await expect(page.getByLabel('Email address')).toHaveValue(
+    'alex@example.com',
+  );
 });
 
 test('pagination stays local and resets when filters change', async ({
