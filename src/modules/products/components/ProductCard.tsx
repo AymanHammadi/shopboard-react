@@ -1,5 +1,5 @@
 import { Star } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { ProductImage } from '../../../shared/components/ProductImage';
 import { formatMoney } from '../../../shared/money';
 import { AddToCart } from '../../cart/components/AddToCart';
@@ -15,7 +15,7 @@ export function ProductCard({ product, loading = 'lazy' }: Props) {
   return (
     <article className="product-card">
       <Link
-        to={`/products/${String(product.id)}`}
+        href={`/products/${String(product.id)}`}
         className="product-image-link"
         aria-label={`View ${product.title}`}
         tabIndex={-1}
@@ -36,7 +36,7 @@ export function ProductCard({ product, loading = 'lazy' }: Props) {
           </span>
         </div>
         <h3>
-          <Link to={`/products/${String(product.id)}`}>{product.title}</Link>
+          <Link href={`/products/${String(product.id)}`}>{product.title}</Link>
         </h3>
         <p className="product-price">{formatMoney(product.priceCents)}</p>
         <AddToCart product={product} />

@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { CartProvider } from '../src/modules/cart/components/CartProvider';
 import { AuthProvider } from '../src/modules/auth/components/AuthProvider';
 import { CheckoutPage } from '../src/modules/checkout/pages/CheckoutPage';
@@ -59,11 +58,9 @@ describe('checkout', () => {
   });
   it('does not offer a form when the cart is empty', () => {
     render(
-      <MemoryRouter>
-        <CartProvider>
-          <CheckoutPage />
-        </CartProvider>
-      </MemoryRouter>,
+      <CartProvider>
+        <CheckoutPage />
+      </CartProvider>,
       { wrapper: AuthProvider },
     );
     expect(
@@ -80,11 +77,9 @@ describe('checkout', () => {
       JSON.stringify([{ product: mascara, quantity: 2 }]),
     );
     render(
-      <MemoryRouter>
-        <CartProvider>
-          <CheckoutPage />
-        </CartProvider>
-      </MemoryRouter>,
+      <CartProvider>
+        <CheckoutPage />
+      </CartProvider>,
       { wrapper: AuthProvider },
     );
     const user = userEvent.setup();

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { formatMoney } from '../../../shared/money';
 import type { OrderReceipt } from '../checkout.types';
 
@@ -19,7 +19,7 @@ export function OrderConfirmation({ receipt }: Props) {
         {formatMoney(receipt.subtotalCents)}.
       </p>
       <p>No payment was taken.</p>
-      <Link to="/" className="button button--primary">
+      <Link href="/" className="button button--primary">
         Continue shopping
       </Link>
     </div>

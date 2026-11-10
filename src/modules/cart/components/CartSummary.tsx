@@ -1,5 +1,5 @@
 import { ArrowUpRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { formatMoney } from '../../../shared/money';
 
 interface Props {
@@ -21,11 +21,11 @@ export function CartSummary({ quantity, subtotalCents }: Props) {
         <strong>{formatMoney(subtotalCents)}</strong>
       </div>
       <p className="small muted">Prices in USD.</p>
-      <Link to="/checkout" className="button button--primary">
+      <Link href="/checkout" className="button button--primary">
         Checkout
         <ArrowUpRight size={18} aria-hidden="true" />
       </Link>
-      <Link to="/">Continue shopping</Link>
+      <Link href="/">Continue shopping</Link>
     </aside>
   );
 }

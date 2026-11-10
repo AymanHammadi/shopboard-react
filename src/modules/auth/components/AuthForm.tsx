@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { SubmitEvent } from 'react';
 import { ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { Button } from '../../../shared/components/Button';
 import { TextField } from '../../../shared/components/TextField';
 import { createProfile, validateAuth } from '../auth.logic';
@@ -14,7 +14,7 @@ interface Props {
 
 export function AuthForm({ mode }: Props) {
   const { actions } = useAuth();
-  const navigate = useNavigate();
+  const router = useRouter();
   const [fields, setFields] = useState<AuthFields>({
     name: '',
     email: '',
@@ -49,7 +49,7 @@ export function AuthForm({ mode }: Props) {
     }
     actions.signIn(createProfile(fields, mode));
     setFields({ name: '', email: '', password: '' });
-    void navigate('/', { replace: true });
+    router.replace('/');
   }
 
   return (

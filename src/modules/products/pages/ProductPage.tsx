@@ -1,17 +1,20 @@
 import { ArrowLeft } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import Link from 'next/link';
 import { AsyncBoundary } from '../../../shared/components/AsyncBoundary';
 import { parseProductId } from '../products.logic';
 import { ProductContent } from '../components/ProductContent';
 import { MissingProduct } from '../components/MissingProduct';
 
-export function ProductPage() {
-  const { productId } = useParams();
+interface Props {
+  productId: string;
+}
+
+export function ProductPage({ productId }: Props) {
   const id = parseProductId(productId);
 
   return (
     <div className="container page-section">
-      <Link to="/" className="back-link">
+      <Link href="/" className="back-link">
         <ArrowLeft size={17} aria-hidden="true" />
         Back to the shop
       </Link>
@@ -22,10 +25,13 @@ export function ProductPage() {
           key={id}
           title="Product couldn’t load"
           fallback={
-            <div className="detail-loading" role="status">
-              <span>Loading product…</span>
-              <div className="skeleton-media" aria-hidden="true" />
-            </div>
+            <>
+              <title>Product | ShopBoard</title>
+              <div className="detail-loading" role="status">
+                <span>Loading product…</span>
+                <div className="skeleton-media" aria-hidden="true" />
+              </div>
+            </>
           }
         >
           <ProductContent id={id} />

@@ -15,13 +15,10 @@ export class ApiError extends Error {
 export async function getJson(
   path: string,
   signal: AbortSignal,
+  configuredBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ??
+    'https://dummyjson.com',
 ): Promise<unknown> {
-  const configuredBaseUrl: unknown = import.meta.env.VITE_API_BASE_URL;
-  const baseUrl = (
-    typeof configuredBaseUrl === 'string'
-      ? configuredBaseUrl
-      : 'https://dummyjson.com'
-  ).replace(/\/$/, '');
+  const baseUrl = configuredBaseUrl.replace(/\/$/, '');
   const response = await fetch(`${baseUrl}${path}`, {
     signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]),
     headers: { Accept: 'application/json' },

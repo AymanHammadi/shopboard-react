@@ -1,12 +1,9 @@
 import { AsyncBoundary } from '../../../shared/components/AsyncBoundary';
-import { usePageTitle } from '../../../shared/usePageTitle';
 import { CatalogHero } from '../components/CatalogHero';
 import { CatalogResults } from '../components/CatalogResults';
 import { CatalogSkeleton } from '../components/CatalogSkeleton';
 
 export function CatalogPage() {
-  usePageTitle('Everyday, upgraded.');
-
   return (
     <div className="container">
       <CatalogHero />

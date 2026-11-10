@@ -1,7 +1,8 @@
+'use client';
+
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { StateMessage } from '../../../shared/components/StateMessage';
-import { usePageTitle } from '../../../shared/usePageTitle';
 import { useCart } from '../../cart/cart.state';
 import { cartTotals } from '../../cart/cart.logic';
 import { CheckoutForm } from '../components/CheckoutForm';
@@ -12,7 +13,6 @@ import type { CheckoutValues, OrderReceipt } from '../checkout.types';
 export function CheckoutPage() {
   const { value: cart, actions } = useCart();
   const [receipt, setReceipt] = useState<OrderReceipt | null>(null);
-  usePageTitle(receipt === null ? 'Checkout' : 'Order confirmed');
 
   function complete(values: CheckoutValues) {
     if (cart.length === 0 || receipt !== null) return;
@@ -22,6 +22,7 @@ export function CheckoutPage() {
 
   return (
     <div className="container page-section">
+      <title>{`${receipt === null ? 'Checkout' : 'Order confirmed'} | ShopBoard`}</title>
       {receipt !== null ? (
         <OrderConfirmation receipt={receipt} />
       ) : cart.length === 0 ? (
@@ -29,7 +30,7 @@ export function CheckoutPage() {
           <h1 className="checkout-heading">Checkout</h1>
           <StateMessage title="Your cart is empty">
             <p>Add something to your cart before checking out.</p>
-            <Link to="/" className="button button--primary">
+            <Link href="/" className="button button--primary">
               Explore products
             </Link>
           </StateMessage>

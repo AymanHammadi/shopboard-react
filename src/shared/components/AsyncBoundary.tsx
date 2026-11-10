@@ -1,3 +1,5 @@
+'use client';
+
 import { Suspense } from 'react';
 import type { ReactNode } from 'react';
 import { QueryErrorResetBoundary } from '@tanstack/react-query';
@@ -5,6 +7,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { requestErrorMessage } from '../api/client';
 import { Button } from './Button';
 import { StateMessage } from './StateMessage';
+import { BrowserData } from './BrowserData';
 
 interface Props {
   children: ReactNode;
@@ -25,7 +28,9 @@ export function AsyncBoundary({ children, fallback, title }: Props) {
             </StateMessage>
           )}
         >
-          <Suspense fallback={fallback}>{children}</Suspense>
+          <Suspense fallback={fallback}>
+            <BrowserData fallback={fallback}>{children}</BrowserData>
+          </Suspense>
         </ErrorBoundary>
       )}
     </QueryErrorResetBoundary>

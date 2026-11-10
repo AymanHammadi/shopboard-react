@@ -42,7 +42,7 @@ describe('product API boundary', () => {
   it('uses the configured base URL including its scenario prefix', async () => {
     const request = vi.fn<typeof fetch>().mockResolvedValue(Response.json({}));
     vi.stubGlobal('fetch', request);
-    vi.stubEnv('VITE_API_BASE_URL', '/api/fail/500/');
+    vi.stubEnv('NEXT_PUBLIC_API_BASE_URL', '/api/fail/500/');
     try {
       await getJson('/products/1', new AbortController().signal);
       expect(request.mock.calls[0]?.[0]).toBe('/api/fail/500/products/1');

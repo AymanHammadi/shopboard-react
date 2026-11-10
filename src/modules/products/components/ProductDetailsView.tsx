@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Star, Truck, RotateCcw, ShieldCheck } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { formatMoney } from '../../../shared/money';
 import { QuantityControl } from '../../../shared/components/QuantityControl';
 import { AddToCart } from '../../cart/components/AddToCart';
@@ -26,7 +26,7 @@ export function ProductDetailsView({ product }: Props) {
       <ProductGallery images={product.images} title={product.title} />
       <div className="product-detail-copy">
         <Link
-          to={`/?category=${product.category}`}
+          href={`/?category=${product.category}`}
           className="eyebrow category-link"
         >
           {categoryNames[product.category]}

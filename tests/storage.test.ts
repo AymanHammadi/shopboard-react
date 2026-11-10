@@ -5,6 +5,21 @@ import { createStoredState } from '../src/shared/storage';
 beforeEach(() => localStorage.clear());
 
 describe('persisted state', () => {
+  it('uses a stable empty server snapshot without exposing browser data', () => {
+    localStorage.setItem('test', '[1,2]');
+    const store = createStoredState('test', z.array(z.number()), []);
+    expect(store.getServerSnapshot()).toBe(store.getServerSnapshot());
+    expect(store.getServerSnapshot()).toEqual({ value: [], issue: null });
+    expect(store.getSnapshot().value).toEqual([1, 2]);
+  });
+  it('does not access browser storage while rendering on the server', () => {
+    const read = vi.spyOn(Storage.prototype, 'getItem');
+    vi.stubGlobal('window', undefined);
+    const store = createStoredState('test', z.number(), 0);
+    expect(store.getSnapshot()).toBe(store.getServerSnapshot());
+    expect(store.getSnapshot()).toEqual({ value: 0, issue: null });
+    expect(read).not.toHaveBeenCalled();
+  });
   it('restores a validated saved value', () => {
     localStorage.setItem('test', '[1,2]');
     expect(

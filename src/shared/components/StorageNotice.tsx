@@ -1,3 +1,5 @@
+'use client';
+
 import { useCart } from '../../modules/cart/cart.state';
 import { useAuth } from '../../modules/auth/auth.state';
 

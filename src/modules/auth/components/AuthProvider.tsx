@@ -8,7 +8,11 @@ interface Props {
 
 export function AuthProvider({ children }: Props) {
   const [auth] = useState(createAuthState);
-  const snapshot = useSyncExternalStore(auth.subscribe, auth.getSnapshot);
+  const snapshot = useSyncExternalStore(
+    auth.subscribe,
+    auth.getSnapshot,
+    auth.getServerSnapshot,
+  );
   return (
     <AuthContext value={{ ...snapshot, actions: auth.actions }}>
       {children}

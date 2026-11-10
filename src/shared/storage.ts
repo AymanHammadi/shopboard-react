@@ -10,7 +10,10 @@ export function createStoredState<T>(
   schema: z.ZodType<T>,
   initialValue: T,
 ) {
+  const serverSnapshot: Snapshot<T> = { value: initialValue, issue: null };
+
   function read(): Snapshot<T> {
+    if (typeof window === 'undefined') return serverSnapshot;
     try {
       const raw = localStorage.getItem(key);
       if (raw === null) return { value: initialValue, issue: null };
@@ -44,6 +47,7 @@ export function createStoredState<T>(
 
   return {
     getSnapshot: () => snapshot,
+    getServerSnapshot: () => serverSnapshot,
     subscribe: (listener: () => void) => {
       if (listeners.size === 0) window.addEventListener('storage', onStorage);
       listeners.add(listener);

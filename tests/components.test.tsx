@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { ProductCard } from '../src/modules/products/components/ProductCard';
 import { ProductImage } from '../src/shared/components/ProductImage';
 import { QuantityControl } from '../src/shared/components/QuantityControl';
@@ -17,11 +16,9 @@ beforeEach(() => {
 describe('reusable components', () => {
   it('adds a product and announces the cart quantity', async () => {
     render(
-      <MemoryRouter>
-        <CartProvider>
-          <ProductCard product={mascara} />
-        </CartProvider>
-      </MemoryRouter>,
+      <CartProvider>
+        <ProductCard product={mascara} />
+      </CartProvider>,
     );
     await userEvent.click(
       screen.getByRole('button', { name: `Add to cart: ${mascara.title}` }),
@@ -34,11 +31,9 @@ describe('reusable components', () => {
   });
   it('disables a sold-out product without rendering a stray zero', () => {
     const { container } = render(
-      <MemoryRouter>
-        <CartProvider>
-          <ProductCard product={perfume} />
-        </CartProvider>
-      </MemoryRouter>,
+      <CartProvider>
+        <ProductCard product={perfume} />
+      </CartProvider>,
     );
     expect(
       screen.getByRole('button', { name: `Out of stock: ${perfume.title}` }),
@@ -48,11 +43,9 @@ describe('reusable components', () => {
   });
   it('updates the quantity immediately and enforces stock', async () => {
     render(
-      <MemoryRouter>
-        <CartProvider>
-          <ProductCard product={{ ...mascara, stock: 1 }} />
-        </CartProvider>
-      </MemoryRouter>,
+      <CartProvider>
+        <ProductCard product={{ ...mascara, stock: 1 }} />
+      </CartProvider>,
     );
     await userEvent.click(
       screen.getByRole('button', { name: `Add to cart: ${mascara.title}` }),
@@ -91,11 +84,9 @@ describe('reusable components', () => {
   });
   it('validates on submit, focuses the first invalid field, and clears corrected errors', async () => {
     render(
-      <MemoryRouter>
-        <AuthProvider>
-          <AuthForm mode="signup" />
-        </AuthProvider>
-      </MemoryRouter>,
+      <AuthProvider>
+        <AuthForm mode="signup" />
+      </AuthProvider>,
     );
     expect(
       screen.queryByText('Enter a valid email address.'),

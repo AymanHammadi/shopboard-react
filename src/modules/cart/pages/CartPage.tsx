@@ -1,16 +1,16 @@
+'use client';
+
 import { useRef } from 'react';
 import { ShoppingBag } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { Button } from '../../../shared/components/Button';
 import { StateMessage } from '../../../shared/components/StateMessage';
-import { usePageTitle } from '../../../shared/usePageTitle';
 import { useCart } from '../cart.state';
 import { cartTotals } from '../cart.logic';
 import { CartRow } from '../components/CartRow';
 import { CartSummary } from '../components/CartSummary';
 
 export function CartPage() {
-  usePageTitle('Your cart');
   const { value: cart, actions } = useCart();
   const totals = cartTotals(cart);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -44,7 +44,7 @@ export function CartPage() {
         <StateMessage title="Your cart is empty">
           <ShoppingBag size={36} aria-hidden="true" />
           <p>There’s a good find with your name on it.</p>
-          <Link className="button button--primary" to="/">
+          <Link className="button button--primary" href="/">
             Explore products
           </Link>
         </StateMessage>

@@ -1,10 +1,10 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 
 export function Footer() {
   return (
     <footer className="site-footer">
       <div className="container footer-inner">
-        <Link to="/" className="brand">
+        <Link href="/" className="brand">
           ShopBoard.
         </Link>
         <p>A little something for your everyday.</p>

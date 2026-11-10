@@ -8,7 +8,11 @@ interface Props {
 
 export function CartProvider({ children }: Props) {
   const [cart] = useState(createCartState);
-  const snapshot = useSyncExternalStore(cart.subscribe, cart.getSnapshot);
+  const snapshot = useSyncExternalStore(
+    cart.subscribe,
+    cart.getSnapshot,
+    cart.getServerSnapshot,
+  );
 
   return (
     <CartContext value={{ ...snapshot, actions: cart.actions }}>

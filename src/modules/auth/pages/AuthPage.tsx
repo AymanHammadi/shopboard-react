@@ -1,8 +1,10 @@
+'use client';
+
 import { ArrowUpRight } from 'lucide-react';
-import { Link, Navigate } from 'react-router-dom';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { useAuth } from '../auth.state';
 import { AuthForm } from '../components/AuthForm';
-import { usePageTitle } from '../../../shared/usePageTitle';
 
 interface Props {
   mode: 'login' | 'signup';
@@ -10,8 +12,7 @@ interface Props {
 
 export function AuthPage({ mode }: Props) {
   const { value: profile } = useAuth();
-  usePageTitle(mode === 'signup' ? 'Create account' : 'Log in');
-  if (profile !== null) return <Navigate to="/" replace />;
+  if (profile !== null) redirect('/');
 
   return (
     <div className="container auth-layout">
@@ -31,7 +32,7 @@ export function AuthPage({ mode }: Props) {
         <AuthForm key={mode} mode={mode} />
         <p className="auth-switch">
           {mode === 'signup' ? 'Already have an account?' : 'New around here?'}{' '}
-          <Link to={mode === 'signup' ? '/login' : '/signup'}>
+          <Link href={mode === 'signup' ? '/login' : '/signup'}>
             {mode === 'signup' ? 'Log in' : 'Create an account'}
           </Link>
         </p>

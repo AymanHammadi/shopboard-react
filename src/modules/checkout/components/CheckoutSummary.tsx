@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { formatMoney } from '../../../shared/money';
 import { useCart } from '../../cart/cart.state';
 import { cartTotals } from '../../cart/cart.logic';
@@ -29,7 +29,7 @@ export function CheckoutSummary() {
         <strong>{formatMoney(subtotalCents)}</strong>
       </div>
       <p className="small muted">USD. Shipping and taxes are not calculated.</p>
-      <Link to="/cart">Edit cart</Link>
+      <Link href="/cart">Edit cart</Link>
     </aside>
   );
 }

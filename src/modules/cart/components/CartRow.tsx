@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { Trash2 } from 'lucide-react';
 import { ProductImage } from '../../../shared/components/ProductImage';
 import { QuantityControl } from '../../../shared/components/QuantityControl';
@@ -22,7 +22,7 @@ export function CartRow({ item, onRemove }: Props) {
       <div className="cart-row-copy">
         <span className="muted small">{categoryNames[product.category]}</span>
         <h2>
-          <Link to={`/products/${String(product.id)}`}>{product.title}</Link>
+          <Link href={`/products/${String(product.id)}`}>{product.title}</Link>
         </h2>
         <p>
           {formatMoney(product.priceCents)}{' '}
