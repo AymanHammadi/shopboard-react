@@ -87,6 +87,39 @@ export default tseslint.config(
     rules: { 'no-restricted-globals': 'off' },
   },
   {
+    files: ['src/shared/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/modules/**', '**/app/**'],
+              message:
+                'Shared code must not depend on features or app composition.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/modules/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/app/**'],
+              message: 'Features must not depend on app composition.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['src/modules/**/*.logic.ts'],
     rules: {
       'no-restricted-imports': [
@@ -97,6 +130,7 @@ export default tseslint.config(
               group: [
                 '**/*.state',
                 '**/shared/storage',
+                '**/app/**',
                 'react',
                 'react-dom',
                 'react-router-dom',

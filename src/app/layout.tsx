@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { Providers } from './providers';
+import { StorefrontNavigation, StorefrontStorageNotice } from './storefront';
 import { AppLayout } from '../shared/components/AppLayout';
 import '../styles.css';
 
@@ -34,7 +35,12 @@ export default function RootLayout({ children }: Props) {
       </head>
       <body>
         <Providers>
-          <AppLayout>{children}</AppLayout>
+          <AppLayout
+            navigation={<StorefrontNavigation />}
+            notices={<StorefrontStorageNotice />}
+          >
+            {children}
+          </AppLayout>
         </Providers>
       </body>
     </html>
