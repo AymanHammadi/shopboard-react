@@ -1,10 +1,13 @@
-import { useState } from 'react';
-import type { SubmitEvent } from 'react';
+import { useRef } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Button } from '../../../shared/components/Button';
 import { TextField } from '../../../shared/components/TextField';
-import { createProfile, validateAuth } from '../auth.logic';
+import { useHydrated } from '../../../shared/hydration';
+import { createProfile } from '../auth.logic';
+import { loginSchema, signupSchema } from '../auth.types';
 import { useAuth } from '../auth.state';
 import type { AuthFields } from '../auth.types';
 
@@ -13,88 +16,74 @@ interface Props {
 }
 
 export function AuthForm({ mode }: Props) {
+  const hydrated = useHydrated();
   const { actions } = useAuth();
   const router = useRouter();
-  const [fields, setFields] = useState<AuthFields>({
-    name: '',
-    email: '',
-    password: '',
+  const submitting = useRef(false);
+  const form = useForm<AuthFields>({
+    resolver: zodResolver(mode === 'signup' ? signupSchema : loginSchema),
+    mode: 'onTouched',
+    defaultValues: { name: '', email: '', password: '' },
   });
-  const [submitted, setSubmitted] = useState(false);
-  const [touched, setTouched] = useState<ReadonlySet<keyof AuthFields>>(
-    new Set(),
-  );
-  const errors = validateAuth(fields, mode);
+  const { errors, isSubmitting, isSubmitSuccessful } = form.formState;
 
-  function touch(field: keyof AuthFields) {
-    setTouched((current) => new Set([...current, field]));
-  }
-  function change(field: keyof AuthFields, value: string) {
-    setFields((current) => ({ ...current, [field]: value }));
-  }
-  function submit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSubmitted(true);
-    if (Object.keys(errors).length > 0) {
-      const firstInvalid =
-        errors.name !== undefined
-          ? 'name'
-          : errors.email !== undefined
-            ? 'email'
-            : 'password';
-      event.currentTarget
-        .querySelector<HTMLInputElement>(`#${firstInvalid}`)
-        ?.focus();
-      return;
-    }
+  function submit(fields: AuthFields) {
     actions.signIn(createProfile(fields, mode));
-    setFields({ name: '', email: '', password: '' });
+    form.resetField('password');
     router.replace('/');
   }
 
   return (
-    <form className="auth-form" noValidate onSubmit={submit}>
+    <form
+      className="auth-form"
+      noValidate
+      onSubmit={(event) => {
+        if (submitting.current || isSubmitSuccessful) {
+          event.preventDefault();
+          return;
+        }
+        submitting.current = true;
+        void form
+          .handleSubmit(submit)(event)
+          .finally(() => {
+            submitting.current = false;
+          });
+      }}
+    >
       {mode === 'signup' ? (
         <TextField
           id="name"
-          name="name"
+          {...form.register('name')}
           label="Full name"
           autoComplete="name"
           required
-          value={fields.name}
-          onChange={(event) => change('name', event.target.value)}
-          onBlur={() => touch('name')}
-          error={submitted || touched.has('name') ? errors.name : undefined}
+          error={errors.name?.message}
         />
       ) : null}
       <TextField
         id="email"
-        name="email"
+        {...form.register('email')}
         label="Email address"
         type="email"
         autoComplete="email"
         required
-        value={fields.email}
-        onChange={(event) => change('email', event.target.value)}
-        onBlur={() => touch('email')}
-        error={submitted || touched.has('email') ? errors.email : undefined}
+        error={errors.email?.message}
       />
       <TextField
         id="password"
-        name="password"
+        {...form.register('password')}
         label="Password"
         type="password"
         autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
         minLength={8}
         required
-        value={fields.password}
-        onChange={(event) => change('password', event.target.value)}
-        onBlur={() => touch('password')}
-        error={
-          submitted || touched.has('password') ? errors.password : undefined
-        }
+        error={errors.password?.message}
       />
-      <Button type="submit" variant="primary">
+      <Button
+        type="submit"
+        variant="primary"
+        disabled={hydrated === false || isSubmitting || isSubmitSuccessful}
+      >
         {mode === 'signup' ? 'Create account' : 'Log in'}
         <ArrowRight size={18} aria-hidden="true" />
       </Button>
