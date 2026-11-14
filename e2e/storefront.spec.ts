@@ -122,7 +122,9 @@ test('product details, stock cap and missing product routes', async ({
     page.getByRole('heading', { name: 'Essence Mascara' }),
   ).toBeVisible();
   await expect(page).toHaveTitle('Essence Mascara | ShopBoard');
-  await expect(page.locator('title')).toHaveCount(1);
+  await expect(page.locator('title')).toHaveText([
+    'Essence Mascara | ShopBoard',
+  ]);
   const increase = page.getByRole('button', {
     name: 'Increase quantity of Essence Mascara',
   });
@@ -410,6 +412,7 @@ test('layout fits the viewport and the console has no React errors', async ({
     '/signup',
   ]) {
     await page.goto(path);
+    await expect(page.locator('h1')).toHaveCount(1);
     await expect(page.locator('h1')).toBeVisible();
     expect(
       await page.evaluate(

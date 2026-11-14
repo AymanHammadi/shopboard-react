@@ -12,13 +12,10 @@ interface Props {
 }
 
 const productLoading = (
-  <>
-    <title>Product | ShopBoard</title>
-    <div className="detail-loading" role="status">
-      <span>Loading product…</span>
-      <div className="skeleton-media" aria-hidden="true" />
-    </div>
-  </>
+  <div className="detail-loading" role="status">
+    <span>Loading product…</span>
+    <div className="skeleton-media" aria-hidden="true" />
+  </div>
 );
 
 export function ProductPage({ productId }: Props) {
