@@ -1,4 +1,6 @@
-import { AsyncBoundary } from '../../../shared/components/AsyncBoundary';
+import { Suspense } from 'react';
+import { QueryHydration } from '../../../shared/components/QueryHydration';
+import { loadProducts } from '../products.server';
 import { CatalogHero } from '../components/CatalogHero';
 import { CatalogResults } from '../components/CatalogResults';
 import { CatalogSkeleton } from '../components/CatalogSkeleton';
@@ -16,12 +18,16 @@ export function CatalogPage() {
           <h2 id="products-heading">The good stuff</h2>
           <span className="eyebrow">Explore the collection</span>
         </div>
-        <AsyncBoundary
-          title="Products couldn’t load"
-          fallback={<CatalogSkeleton />}
-        >
-          <CatalogResults />
-        </AsyncBoundary>
+        <Suspense fallback={<CatalogSkeleton />}>
+          <QueryHydration
+            queryKey={['products']}
+            load={loadProducts}
+            title="Products couldn’t load"
+            fallback={<CatalogSkeleton />}
+          >
+            <CatalogResults />
+          </QueryHydration>
+        </Suspense>
       </section>
     </div>
   );

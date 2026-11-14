@@ -1,6 +1,8 @@
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { AsyncBoundary } from '../../../shared/components/AsyncBoundary';
+import { Suspense } from 'react';
+import { QueryHydration } from '../../../shared/components/QueryHydration';
+import { loadProduct } from '../products.server';
 import { parseProductId } from '../products.logic';
 import { ProductContent } from '../components/ProductContent';
 import { MissingProduct } from '../components/MissingProduct';
@@ -8,6 +10,16 @@ import { MissingProduct } from '../components/MissingProduct';
 interface Props {
   productId: string;
 }
+
+const productLoading = (
+  <>
+    <title>Product | ShopBoard</title>
+    <div className="detail-loading" role="status">
+      <span>Loading product…</span>
+      <div className="skeleton-media" aria-hidden="true" />
+    </div>
+  </>
+);
 
 export function ProductPage({ productId }: Props) {
   const id = parseProductId(productId);
@@ -21,21 +33,16 @@ export function ProductPage({ productId }: Props) {
       {id === null ? (
         <MissingProduct />
       ) : (
-        <AsyncBoundary
-          key={id}
-          title="Product couldn’t load"
-          fallback={
-            <>
-              <title>Product | ShopBoard</title>
-              <div className="detail-loading" role="status">
-                <span>Loading product…</span>
-                <div className="skeleton-media" aria-hidden="true" />
-              </div>
-            </>
-          }
-        >
-          <ProductContent id={id} />
-        </AsyncBoundary>
+        <Suspense key={id} fallback={productLoading}>
+          <QueryHydration
+            queryKey={['product', id]}
+            load={(signal) => loadProduct(id, signal)}
+            title="Product couldn’t load"
+            fallback={productLoading}
+          >
+            <ProductContent id={id} />
+          </QueryHydration>
+        </Suspense>
       )}
     </div>
   );

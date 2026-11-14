@@ -1,21 +1,35 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import type { ReactNode } from 'react';
 import { QueryErrorResetBoundary } from '@tanstack/react-query';
 import { ErrorBoundary } from 'react-error-boundary';
 import { requestErrorMessage } from '../api/client';
 import { Button } from './Button';
 import { StateMessage } from './StateMessage';
-import { BrowserData } from './BrowserData';
 
 interface Props {
   children: ReactNode;
   fallback: ReactNode;
   title: string;
+  initialError?: string | undefined;
 }
 
-export function AsyncBoundary({ children, fallback, title }: Props) {
+export function AsyncBoundary({
+  children,
+  fallback,
+  title,
+  initialError,
+}: Props) {
+  const [retrying, setRetrying] = useState(false);
+  if (initialError !== undefined && retrying === false) {
+    return (
+      <StateMessage title={title} role="alert">
+        <p>{initialError}</p>
+        <Button onClick={() => setRetrying(true)}>Try again</Button>
+      </StateMessage>
+    );
+  }
   return (
     <QueryErrorResetBoundary>
       {({ reset }) => (
@@ -28,9 +42,7 @@ export function AsyncBoundary({ children, fallback, title }: Props) {
             </StateMessage>
           )}
         >
-          <Suspense fallback={fallback}>
-            <BrowserData fallback={fallback}>{children}</BrowserData>
-          </Suspense>
+          <Suspense fallback={fallback}>{children}</Suspense>
         </ErrorBoundary>
       )}
     </QueryErrorResetBoundary>

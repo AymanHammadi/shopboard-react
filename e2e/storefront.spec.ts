@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { apiProducts, mascara } from '../tests/fixtures';
 
 test.beforeEach(async ({ page }) => {
+  await page.request.post('http://127.0.0.1:5198/__scenario', { data: {} });
   await page.route('https://dummyjson.com/products**', async (route) => {
     const url = new URL(route.request().url());
     if (url.pathname === '/products') {
@@ -190,39 +191,31 @@ test('signup and login persist only a profile, retain the guest cart', async ({
 });
 
 test('loading, error retry and genuinely empty catalog', async ({ page }) => {
-  let shouldFail = true;
-  let release: (() => void) | undefined;
-  const waiting = new Promise<void>((resolve) => {
-    release = resolve;
+  await page.request.post('http://127.0.0.1:5198/__scenario', {
+    data: { status: 500, delay: 1500 },
   });
-  await page.route('https://dummyjson.com/products?**', async (route) => {
-    const fail = shouldFail;
-    if (fail) {
-      await waiting;
-      await route.fulfill({
-        status: 500,
-        json: { message: 'Server unavailable' },
-      });
-    } else {
-      await route.fulfill({ json: { products: [], total: 0 } });
-    }
-  });
-  await page.goto('/');
+  await page.route('https://dummyjson.com/products?**', (route) =>
+    route.fulfill({ status: 500, json: {} }),
+  );
+  await page.goto('/', { waitUntil: 'commit' });
   await expect(
     page.getByRole('status', { name: 'Loading products' }),
   ).toBeVisible();
   await expect(page.getByRole('banner')).toBeVisible();
   await expect(page.locator('h1')).toContainText('Good finds.');
-  if (release === undefined)
-    throw new Error('The delayed response was not initialized.');
-  release();
   await expect(
     page.getByRole('heading', { name: 'Products couldn’t load' }),
   ).toBeVisible();
   await expect(
     page.getByRole('link', { name: 'Cart, 0 items', exact: true }),
   ).toBeVisible();
-  shouldFail = false;
+  await page.getByRole('button', { name: 'Try again' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Products couldn’t load' }),
+  ).toBeVisible();
+  await page.route('https://dummyjson.com/products?**', (route) =>
+    route.fulfill({ json: { products: [], total: 0 } }),
+  );
   await page.getByRole('button', { name: 'Try again' }).click();
   await expect(
     page.getByRole('heading', { name: 'No products available' }),
@@ -237,6 +230,9 @@ test('product errors retry inside the page without losing the cart', async ({
     .getByRole('button', { name: 'Add to cart: Essence Mascara', exact: true })
     .click();
   let shouldFail = true;
+  await page.request.post('http://127.0.0.1:5198/__scenario', {
+    data: { detailStatus: 500 },
+  });
   await page.route('https://dummyjson.com/products/1', (route) =>
     route.fulfill(
       shouldFail ? { status: 500, json: {} } : { json: apiProducts[0] },
@@ -299,6 +295,9 @@ test('API scenarios are available only during development', async ({
     return;
   }
   let mode = 'fail/500';
+  await page.request.post('http://127.0.0.1:5198/__scenario', {
+    data: { status: 500 },
+  });
   await page.route('https://dummyjson.com/products?**', async (route) => {
     const response = await route.fetch({
       url: `${baseURL}/api/${mode}/products`,
@@ -319,16 +318,26 @@ test('API scenarios are available only during development', async ({
 test.describe('server rendering', () => {
   test.use({ javaScriptEnabled: false });
 
-  test('serves the shell without JavaScript and returns a real 404 for unknown routes', async ({
+  test('includes products in server HTML without JavaScript and returns a real 404 for unknown routes', async ({
     page,
   }) => {
     await page.goto('/');
     await expect(page.getByRole('banner')).toBeVisible();
     await expect(page.locator('h1')).toContainText('Good finds.');
-    await expect(
-      page.getByRole('status', { name: 'Loading products' }),
-    ).toBeVisible();
-    await expect(page).toHaveTitle('Everyday, upgraded. | ShopBoard');
+    await expect(page.locator('.product-card h3')).toHaveText([
+      'Essence Mascara',
+      'Green Chair',
+      'Fresh Fragrance',
+    ]);
+    await page.goto('/?category=beauty&search=everyday');
+    await expect(page.locator('.product-card h3')).toHaveText([
+      'Essence Mascara',
+    ]);
+    const detailResponse = await page.goto('/products/1');
+    expect(await detailResponse?.text()).toContain('<h1>Essence Mascara</h1>');
+    expect(await detailResponse?.text()).toContain(
+      '<title>Essence Mascara | ShopBoard</title>',
+    );
     const response = await page.goto('/missing');
     expect(response?.status()).toBe(404);
     await expect(
@@ -340,17 +349,10 @@ test.describe('server rendering', () => {
 test('a slow catalog does not block navigating to the cart', async ({
   page,
 }) => {
-  let release: (() => void) | undefined;
-  const waiting = new Promise<void>((resolve) => {
-    release = resolve;
+  await page.request.post('http://127.0.0.1:5198/__scenario', {
+    data: { delay: 3000 },
   });
-  await page.route('https://dummyjson.com/products?**', async (route) => {
-    await waiting;
-    await route.fulfill({
-      json: { products: apiProducts, total: apiProducts.length },
-    });
-  });
-  await page.goto('/');
+  await page.goto('/', { waitUntil: 'commit' });
   await expect(
     page.getByRole('status', { name: 'Loading products' }),
   ).toBeVisible();
@@ -358,8 +360,6 @@ test('a slow catalog does not block navigating to the cart', async ({
   await expect(
     page.getByRole('heading', { name: 'Your cart is empty' }),
   ).toBeVisible();
-  if (release === undefined) throw new Error('Missing delayed response');
-  release();
 });
 
 test('corrupt or blocked storage does not crash the cart', async ({ page }) => {
@@ -520,6 +520,9 @@ test('pagination stays local and resets when filters change', async ({
   await page.route('https://dummyjson.com/products?**', (route) =>
     route.fulfill({ json: { products: catalog, total: catalog.length } }),
   );
+  await page.request.post('http://127.0.0.1:5198/__scenario', {
+    data: { catalog },
+  });
   await page.goto('/');
   await expect(page.locator('.product-card')).toHaveCount(12);
   await page.getByRole('button', { name: 'Next', exact: true }).click();

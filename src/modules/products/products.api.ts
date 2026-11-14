@@ -43,10 +43,12 @@ function mapProduct(product: z.infer<typeof apiProductSchema>): Product {
 
 export async function fetchProducts(
   signal: AbortSignal,
+  baseUrl?: string,
 ): Promise<readonly Product[]> {
   const data = await getJson(
     '/products?limit=0&select=title,description,category,price,rating,stock,thumbnail',
     signal,
+    baseUrl,
   );
   const catalog = catalogSchema.parse(data);
   if (catalog.total !== catalog.products.length) {
@@ -58,9 +60,10 @@ export async function fetchProducts(
 export async function fetchProduct(
   id: number,
   signal: AbortSignal,
+  baseUrl?: string,
 ): Promise<ProductDetails> {
   const data = detailsSchema.parse(
-    await getJson(`/products/${String(id)}`, signal),
+    await getJson(`/products/${String(id)}`, signal, baseUrl),
   );
   return {
     ...mapProduct(data),

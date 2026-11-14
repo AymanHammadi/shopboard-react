@@ -1,5 +1,8 @@
+'use client';
+
 import { Minus, Plus } from 'lucide-react';
 import { Button } from './Button';
+import { useHydrated } from '../hydration';
 
 interface Props {
   name: string;
@@ -9,6 +12,7 @@ interface Props {
 }
 
 export function QuantityControl({ name, value, max, onChange }: Props) {
+  const hydrated = useHydrated();
   return (
     <div
       className="quantity-control"
@@ -18,7 +22,7 @@ export function QuantityControl({ name, value, max, onChange }: Props) {
       <Button
         variant="ghost"
         aria-label={`Decrease quantity of ${name}`}
-        disabled={value <= 1}
+        disabled={value <= 1 || hydrated === false}
         onClick={() => onChange(value - 1)}
       >
         <Minus size={16} aria-hidden="true" />
@@ -27,7 +31,7 @@ export function QuantityControl({ name, value, max, onChange }: Props) {
       <Button
         variant="ghost"
         aria-label={`Increase quantity of ${name}`}
-        disabled={value >= max}
+        disabled={value >= max || hydrated === false}
         onClick={() => onChange(value + 1)}
       >
         <Plus size={16} aria-hidden="true" />

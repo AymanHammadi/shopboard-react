@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react';
 import { Button } from '../../../shared/components/Button';
+import { useHydrated } from '../../../shared/hydration';
 import { useCart } from '../cart.state';
 import type { Product } from '../../products/products.types';
 
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function AddToCart({ product, quantity = 1 }: Props) {
+  const hydrated = useHydrated();
   const { value: cart, actions } = useCart();
   const count =
     cart.find((item) => item.product.id === product.id)?.quantity ?? 0;
@@ -24,7 +26,7 @@ export function AddToCart({ product, quantity = 1 }: Props) {
     <div className="add-to-cart">
       <Button
         variant="primary"
-        disabled={unavailable}
+        disabled={unavailable || hydrated === false}
         onClick={() => actions.add(product, quantity)}
         aria-label={`${label}: ${product.title}`}
       >
