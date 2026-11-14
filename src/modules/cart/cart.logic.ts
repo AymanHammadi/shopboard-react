@@ -36,6 +36,16 @@ export function removeItem(cart: Cart, productId: number): Cart {
   return cart.filter((item) => item.product.id !== productId);
 }
 
+export function removePurchasedItems(cart: Cart, purchased: Cart): Cart {
+  const quantities = new Map(
+    purchased.map((item) => [item.product.id, item.quantity]),
+  );
+  return cart.flatMap((item) => {
+    const quantity = item.quantity - (quantities.get(item.product.id) ?? 0);
+    return quantity > 0 ? [{ ...item, quantity }] : [];
+  });
+}
+
 export function cartTotals(cart: Cart) {
   return cart.reduce(
     (totals, item) => ({

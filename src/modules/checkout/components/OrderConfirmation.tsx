@@ -19,6 +19,7 @@ export function OrderConfirmation({ receipt }: Props) {
         {formatMoney(receipt.subtotalCents)}.
       </p>
       <p>No payment was taken.</p>
+      <p className="small muted">Order reference: {receipt.orderId}</p>
       <Link href="/" className="button button--primary">
         Continue shopping
       </Link>

@@ -29,6 +29,9 @@ export function CheckoutSummary() {
         <strong>{formatMoney(subtotalCents)}</strong>
       </div>
       <p className="small muted">USD. Shipping and taxes are not calculated.</p>
+      <p className="small muted">
+        Final prices and availability are checked when you confirm.
+      </p>
       <Link href="/cart">Edit cart</Link>
     </aside>
   );

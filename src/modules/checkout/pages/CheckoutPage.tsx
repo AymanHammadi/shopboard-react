@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { StateMessage } from '../../../shared/components/StateMessage';
 import { useCart } from '../../cart/cart.state';
-import { cartTotals } from '../../cart/cart.logic';
+import { placeOrder } from '../checkout.api';
 import { CheckoutForm } from '../components/CheckoutForm';
 import { CheckoutSummary } from '../components/CheckoutSummary';
 import { OrderConfirmation } from '../components/OrderConfirmation';
@@ -14,10 +14,17 @@ export function CheckoutPage() {
   const { value: cart, actions } = useCart();
   const [receipt, setReceipt] = useState<OrderReceipt | null>(null);
 
-  function complete(values: CheckoutValues) {
+  async function complete(values: CheckoutValues) {
     if (cart.length === 0 || receipt !== null) return;
-    setReceipt({ fullName: values.fullName, ...cartTotals(cart) });
-    actions.clear();
+    const confirmed = await placeOrder({
+      ...values,
+      lines: cart.map(({ product, quantity }) => ({
+        productId: product.id,
+        quantity,
+      })),
+    });
+    setReceipt(confirmed);
+    actions.removePurchased(cart);
   }
 
   return (

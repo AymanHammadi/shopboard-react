@@ -31,8 +31,32 @@ export const checkoutSchema = z.object({
 
 export type CheckoutValues = z.infer<typeof checkoutSchema>;
 
-export interface OrderReceipt {
-  readonly fullName: string;
-  readonly quantity: number;
-  readonly subtotalCents: number;
-}
+export const checkoutRequestSchema = checkoutSchema.strict().extend({
+  lines: z
+    .array(
+      z.strictObject({
+        productId: z.number().int().positive(),
+        quantity: z.number().int().min(1).max(1000),
+      }),
+    )
+    .min(1)
+    .max(100)
+    .refine(
+      (lines) =>
+        new Set(lines.map((line) => line.productId)).size === lines.length,
+      'Each product must appear only once.',
+    ),
+});
+
+export const orderReceiptSchema = z.object({
+  orderId: z.uuid(),
+  fullName: z.string().min(2),
+  quantity: z.number().int().positive(),
+  subtotalCents: z.number().int().nonnegative(),
+});
+
+export const checkoutErrorSchema = z.object({
+  message: z.string().min(1).max(300),
+});
+export type CheckoutRequest = z.infer<typeof checkoutRequestSchema>;
+export type OrderReceipt = Readonly<z.infer<typeof orderReceiptSchema>>;

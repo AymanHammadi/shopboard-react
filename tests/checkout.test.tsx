@@ -17,7 +17,20 @@ const validDetails = {
   country: 'United Kingdom',
 };
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  localStorage.clear();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn<typeof fetch>().mockResolvedValue(
+      Response.json({
+        orderId: 'b6ad633f-277e-4c2b-a752-98d68bdd3e86',
+        fullName: validDetails.fullName,
+        quantity: 2,
+        subtotalCents: 1998,
+      }),
+    ),
+  );
+});
 
 describe('checkout schema', () => {
   it('trims values and accepts international addresses', () => {
@@ -144,5 +157,99 @@ describe('checkout', () => {
     fireEvent.submit(form);
     fireEvent.submit(form);
     await waitFor(() => expect(complete).toHaveBeenCalledOnce());
+  });
+
+  it('keeps the form and cart after a backend failure and permits retry', async () => {
+    localStorage.setItem(
+      'shopboard:cart:v1',
+      JSON.stringify([{ product: mascara, quantity: 2 }]),
+    );
+    const request = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        Response.json(
+          { message: 'Stock changed. Please edit your cart.' },
+          { status: 409 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          orderId: 'b6ad633f-277e-4c2b-a752-98d68bdd3e86',
+          fullName: validDetails.fullName,
+          quantity: 2,
+          subtotalCents: 2400,
+        }),
+      );
+    vi.stubGlobal('fetch', request);
+    const view = render(
+      <CartProvider>
+        <CheckoutPage />
+      </CartProvider>,
+      { wrapper: AuthProvider },
+    );
+    for (const [name, value] of Object.entries(validDetails)) {
+      const input = view.container.querySelector(`input[name="${name}"]`);
+      if (input === null) throw new Error('Missing checkout field');
+      fireEvent.change(input, { target: { value } });
+    }
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Confirm order' }),
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Stock changed.',
+    );
+    expect(localStorage.getItem('shopboard:cart:v1')).toContain(
+      'Essence Mascara',
+    );
+    expect(screen.getByLabelText('Street address')).toHaveValue(
+      validDetails.address,
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Confirm order' }),
+    );
+    expect(await screen.findByText(/totaling \$24.00/)).toBeVisible();
+    expect(request).toHaveBeenCalledTimes(2);
+    const options = request.mock.calls[0]?.[1];
+    expect(options?.body).toBe(
+      JSON.stringify({
+        ...validDetails,
+        lines: [{ productId: 1, quantity: 2 }],
+      }),
+    );
+    expect(localStorage.getItem('shopboard:cart:v1')).toBe('[]');
+  });
+
+  it('locks the request until confirmation returns', async () => {
+    let resolveOrder: (() => void) | undefined;
+    const complete = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveOrder = resolve;
+        }),
+    );
+    const view = render(<CheckoutForm onComplete={complete} />, {
+      wrapper: AuthProvider,
+    });
+    for (const [name, value] of Object.entries(validDetails)) {
+      const input = view.container.querySelector(`input[name="${name}"]`);
+      if (input === null) throw new Error('Missing checkout field');
+      fireEvent.change(input, { target: { value } });
+    }
+    const form = view.container.querySelector('form');
+    if (form === null) throw new Error('Missing form');
+    fireEvent.submit(form);
+    await waitFor(() => expect(complete).toHaveBeenCalledOnce());
+    fireEvent.submit(form);
+    expect(
+      screen.getByRole('button', { name: 'Confirming order…' }),
+    ).toBeDisabled();
+    expect(complete).toHaveBeenCalledOnce();
+    if (resolveOrder === undefined) throw new Error('Missing pending order');
+    resolveOrder();
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Confirm order' }),
+      ).toBeDisabled(),
+    );
   });
 });

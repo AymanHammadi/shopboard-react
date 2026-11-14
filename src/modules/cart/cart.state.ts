@@ -1,6 +1,11 @@
 import { createContext, use } from 'react';
 import { createStoredState } from '../../shared/storage';
-import { addItem, changeQuantity, removeItem } from './cart.logic';
+import {
+  addItem,
+  changeQuantity,
+  removeItem,
+  removePurchasedItems,
+} from './cart.logic';
 import { cartSchema } from './cart.types';
 import type { Product } from '../products/products.types';
 import type { Cart } from './cart.types';
@@ -21,6 +26,9 @@ export function createCartState() {
       },
       clear: () => {
         cart.update(() => []);
+      },
+      removePurchased: (purchased: Cart) => {
+        cart.update((current) => removePurchasedItems(current, purchased));
       },
     },
   };

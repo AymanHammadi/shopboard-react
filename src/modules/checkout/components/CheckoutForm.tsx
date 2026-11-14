@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '../../../shared/components/Button';
@@ -7,7 +8,7 @@ import type { CheckoutValues } from '../checkout.types';
 import { CheckoutField } from './CheckoutField';
 
 interface Props {
-  onComplete: (values: CheckoutValues) => void;
+  onComplete: (values: CheckoutValues) => void | Promise<void>;
 }
 
 export function CheckoutForm({ onComplete }: Props) {
@@ -25,7 +26,21 @@ export function CheckoutForm({ onComplete }: Props) {
       country: '',
     },
   });
-  const { isSubmitting, isSubmitSuccessful } = form.formState;
+  const { isSubmitting, isSubmitSuccessful, errors } = form.formState;
+  const completed = isSubmitSuccessful && errors.root === undefined;
+
+  async function submit(values: CheckoutValues) {
+    try {
+      await onComplete(values);
+    } catch (error) {
+      form.setError('root', {
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Your order could not be confirmed. Please try again.',
+      });
+    }
+  }
 
   return (
     <FormProvider {...form}>
@@ -33,19 +48,20 @@ export function CheckoutForm({ onComplete }: Props) {
         className="checkout-form"
         noValidate
         onSubmit={(event) => {
-          if (submitting.current || isSubmitSuccessful) {
+          if (submitting.current || completed) {
             event.preventDefault();
             return;
           }
           submitting.current = true;
+          form.clearErrors('root');
           void form
-            .handleSubmit(onComplete)(event)
+            .handleSubmit(submit)(event)
             .finally(() => {
               submitting.current = false;
             });
         }}
       >
-        <fieldset disabled={isSubmitting || isSubmitSuccessful}>
+        <fieldset disabled={isSubmitting || completed}>
           <legend>Contact details</legend>
           <CheckoutField
             name="fullName"
@@ -59,7 +75,7 @@ export function CheckoutForm({ onComplete }: Props) {
             autoComplete="email"
           />
         </fieldset>
-        <fieldset disabled={isSubmitting || isSubmitSuccessful}>
+        <fieldset disabled={isSubmitting || completed}>
           <legend>Shipping address</legend>
           <CheckoutField
             name="address"
@@ -90,12 +106,16 @@ export function CheckoutForm({ onComplete }: Props) {
         <Button
           type="submit"
           variant="primary"
-          disabled={isSubmitting || isSubmitSuccessful}
+          disabled={isSubmitting || completed}
         >
           {isSubmitting ? 'Confirming order…' : 'Confirm order'}
         </Button>
+        {errors.root?.message === undefined ? null : (
+          <p role="alert" className="field-error">
+            {errors.root.message}
+          </p>
+        )}
       </form>
     </FormProvider>
   );
 }
-import { useRef } from 'react';
