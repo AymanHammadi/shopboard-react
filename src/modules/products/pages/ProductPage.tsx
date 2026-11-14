@@ -33,7 +33,7 @@ export function ProductPage({ productId }: Props) {
         <Suspense key={id} fallback={productLoading}>
           <QueryHydration
             queryKey={['product', id]}
-            load={(signal) => loadProduct(id, signal)}
+            load={() => loadProduct(id)}
             title="Product couldn’t load"
             fallback={productLoading}
           >

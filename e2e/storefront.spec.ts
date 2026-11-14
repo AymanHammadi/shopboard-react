@@ -121,10 +121,8 @@ test('product details, stock cap and missing product routes', async ({
   await expect(
     page.getByRole('heading', { name: 'Essence Mascara' }),
   ).toBeVisible();
+  await expect(page.locator('title')).toHaveCount(1);
   await expect(page).toHaveTitle('Essence Mascara | ShopBoard');
-  await expect(page.locator('title')).toHaveText([
-    'Essence Mascara | ShopBoard',
-  ]);
   const increase = page.getByRole('button', {
     name: 'Increase quantity of Essence Mascara',
   });

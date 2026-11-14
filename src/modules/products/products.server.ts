@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { cache } from 'react';
 import { headers } from 'next/headers';
 import { ApiError } from '../../shared/api/client';
 import { fetchProduct, fetchProducts } from './products.api';
@@ -21,11 +22,15 @@ export async function loadProducts(signal: AbortSignal) {
   return fetchProducts(signal, await productApiBaseUrl());
 }
 
-export async function loadProduct(id: number, signal: AbortSignal) {
+export const loadProduct = cache(async (id: number) => {
   try {
-    return await fetchProduct(id, signal, await productApiBaseUrl());
+    return await fetchProduct(
+      id,
+      new AbortController().signal,
+      await productApiBaseUrl(),
+    );
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) return null;
     throw error;
   }
-}
+});

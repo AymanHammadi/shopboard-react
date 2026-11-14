@@ -1,5 +1,17 @@
 import { expect, test } from '@playwright/test';
 
+test('product metadata and content share one server inventory request', async ({
+  request,
+}) => {
+  await request.post('http://127.0.0.1:5198/__scenario', { data: {} });
+  const response = await request.get('/products/1');
+  expect(await response.text()).toContain(
+    '<title>Essence Mascara | ShopBoard</title>',
+  );
+  const counts = await request.get('http://127.0.0.1:5198/__requests');
+  expect(await counts.json()).toEqual({ detailRequests: 1 });
+});
+
 test('purchase controls wait for hydration while product content remains visible', async ({
   page,
 }) => {

@@ -11,13 +11,21 @@ const scenarioSchema = z.object({
   catalog: z.array(z.unknown()).default(apiProducts),
 });
 let scenario = scenarioSchema.parse({});
+let detailRequests = 0;
 
 async function handle(request: IncomingMessage, response: ServerResponse) {
   if (request.url === '/__scenario' && request.method === 'POST') {
     let body = '';
     for await (const chunk of request) body += String(chunk);
     scenario = scenarioSchema.parse(JSON.parse(body));
+    detailRequests = 0;
     response.writeHead(200).end('{}');
+    return;
+  }
+  if (request.url === '/__requests') {
+    response
+      .writeHead(200, { 'Content-Type': 'application/json' })
+      .end(JSON.stringify({ detailRequests }));
     return;
   }
   const current = scenario;
@@ -28,6 +36,7 @@ async function handle(request: IncomingMessage, response: ServerResponse) {
   if (url.pathname === '/products') {
     data = { products: current.catalog, total: current.catalog.length };
   } else if (url.pathname.startsWith('/products/')) {
+    detailRequests += 1;
     status = current.detailStatus;
     const product = current.catalog.find(
       (item) =>
